@@ -6,6 +6,7 @@ import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
 import { CategoryCard } from '@/features/categories/CategoryCard'
 import { ProductCard } from '@/features/products/ProductCard'
+import { getErrorMessage } from '@/lib/errors'
 import { getActiveCategories } from '@/services/categoryService'
 import {
   getActiveProducts,
@@ -14,15 +15,26 @@ import {
 } from '@/services/productService'
 import type { Category, Product } from '@/types'
 
+function SectionEmpty({ message }: { message: string }) {
+  return (
+    <p className="rounded-lg border border-dashed border-taupe/45 bg-card/60 px-6 py-10 text-center text-sm text-mocha">
+      {message}
+    </p>
+  )
+}
+
 export function HomePage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [featured, setFeatured] = useState<Product[]>([])
   const [offers, setOffers] = useState<Product[]>([])
   const [newcomers, setNewcomers] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     async function load() {
+      setLoading(true)
       try {
         const [cats, featuredProducts, newProducts, allProducts] = await Promise.all([
           getActiveCategories(),
@@ -34,10 +46,13 @@ export function HomePage() {
         setCategories(cats)
         setFeatured(featuredProducts.slice(0, 4))
         setNewcomers(newProducts.slice(0, 4))
-        setOffers(allProducts.filter((p) => p.old_price != null).slice(0, 4))
-      } catch {
-        // Services already fall back to placeholders when Supabase is not configured.
-        // Keep homepage resilient if a live query fails.
+        setOffers(allProducts.filter((p) => p.old_price != null && p.old_price > p.price).slice(0, 4))
+        setError(null)
+      } catch (err) {
+        if (!active) return
+        setError(getErrorMessage(err, 'تعذر تحميل واجهة المتجر'))
+      } finally {
+        if (active) setLoading(false)
       }
     }
     void load()
@@ -81,7 +96,7 @@ export function HomePage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to="/category/handbags">اكتشفي المجموعات</Link>
+                <Link to="/products">اكتشفي المجموعات</Link>
               </Button>
             </div>
           </div>
@@ -99,6 +114,14 @@ export function HomePage() {
         </div>
       </section>
 
+      {error ? (
+        <div className="container-athar py-8">
+          <p className="rounded-md border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+            {error}
+          </p>
+        </div>
+      ) : null}
+
       <section className="container-athar py-16 sm:py-20" id="categories">
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
@@ -109,11 +132,17 @@ export function HomePage() {
             <Link to="/products">عرض الكل</Link>
           </Button>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
+        {loading ? (
+          <SectionEmpty message="جاري تحميل التصنيفات..." />
+        ) : categories.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        ) : (
+          <SectionEmpty message="لا توجد تصنيفات نشطة حالياً." />
+        )}
       </section>
 
       <section className="border-y border-taupe/25 bg-card/40 py-16 sm:py-20">
@@ -127,11 +156,17 @@ export function HomePage() {
               <Link to="/products">كل المنتجات</Link>
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            {featured.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <SectionEmpty message="جاري تحميل المنتجات المميزة..." />
+          ) : featured.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              {featured.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <SectionEmpty message="لا توجد منتجات مميزة حالياً." />
+          )}
         </div>
       </section>
 
@@ -145,11 +180,17 @@ export function HomePage() {
             <h2 className="font-display text-2xl font-semibold sm:text-3xl">وفّري بذوق راقٍ</h2>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          {offers.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <SectionEmpty message="جاري تحميل العروض..." />
+        ) : offers.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            {offers.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <SectionEmpty message="لا توجد عروض حالياً." />
+        )}
       </section>
 
       <section className="bg-mist/70 py-16 sm:py-20">
@@ -158,11 +199,17 @@ export function HomePage() {
             <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">وصل حديثاً</p>
             <h2 className="font-display text-2xl font-semibold sm:text-3xl">وصل حديثًا</h2>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            {newcomers.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <SectionEmpty message="جاري تحميل المنتجات الجديدة..." />
+          ) : newcomers.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              {newcomers.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <SectionEmpty message="لا توجد منتجات جديدة حالياً." />
+          )}
         </div>
       </section>
 

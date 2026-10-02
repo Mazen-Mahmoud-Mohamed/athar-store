@@ -20,7 +20,9 @@ export function calcDiscountPercent(price: number, oldPrice?: number | null) {
 export function slugifyArabic(value: string) {
   return value
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\u0600-\u06FFa-zA-Z0-9-]/g, '')
     .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\u0600-\u06FFa-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
 }

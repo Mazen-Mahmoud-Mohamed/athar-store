@@ -8,9 +8,12 @@ export {
   searchProducts,
   adminGetAllProducts,
   adminGetProductById,
+  adminIsProductSlugTaken,
   adminCreateProduct,
   adminUpdateProduct,
+  adminPatchProduct,
   adminDeleteProduct,
+  adminReplaceProductImage,
   uploadProductImage,
 } from '@/services/productService'
 
@@ -18,7 +21,11 @@ export {
   getActiveCategories,
   getCategoryBySlug,
   adminGetAllCategories,
+  adminIsCategorySlugTaken,
+  adminCountProductsInCategory,
   adminCreateCategory,
   adminUpdateCategory,
+  adminToggleCategoryActive,
   adminDeleteCategory,
+  adminReplaceCategoryImage,
 } from '@/services/categoryService'

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react'
 import { BrandLogo } from '@/components/BrandLogo'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,8 @@ import { cn } from '@/lib/utils'
 const navLinks = [
   { to: '/', label: 'الرئيسية' },
   { to: '/products', label: 'المنتجات' },
-  { to: '/products', label: 'التصنيفات', hash: '#categories' },
-  { to: '/products', label: 'عروض', hash: '#offers' },
+  { to: '/#categories', label: 'التصنيفات' },
+  { to: '/products', label: 'عروض' },
 ]
 
 function NavItem({
@@ -49,9 +49,18 @@ function NavItem({
 export function Header() {
   const { itemCount } = useCart()
   const location = useLocation()
+  const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+
+  function submitSearch(event: FormEvent) {
+    event.preventDefault()
+    const q = searchValue.trim()
+    navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
+    setSearchOpen(false)
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -80,7 +89,7 @@ export function Header() {
           <nav className="flex min-w-0 flex-1 items-center gap-6" aria-label="القائمة الرئيسية">
             <NavItem to="/" label="الرئيسية" />
             <NavItem to="/products" label="المنتجات" />
-            <NavItem to="/category/handbags" label="التصنيفات" />
+            <NavItem to="/#categories" label="التصنيفات" />
             <NavItem to="/products" label="عروض" />
           </nav>
 
@@ -89,15 +98,17 @@ export function Header() {
           </Link>
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <div className="relative hidden w-full max-w-[220px] lg:block">
+            <form onSubmit={submitSearch} className="relative hidden w-full max-w-[220px] lg:block">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
               <Input
                 type="search"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
                 placeholder="ابحث في أثر..."
                 className="h-10 pe-3 ps-9"
                 aria-label="بحث"
               />
-            </div>
+            </form>
             <Button
               variant="ghost"
               size="icon"
@@ -194,16 +205,18 @@ export function Header() {
 
         {searchOpen ? (
           <div className="pb-4 md:hidden lg:hidden">
-            <div className="relative">
+            <form onSubmit={submitSearch} className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
               <Input
                 autoFocus
                 type="search"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
                 placeholder="ابحث في أثر..."
                 className="h-11 pe-3 ps-9"
                 aria-label="بحث"
               />
-            </div>
+            </form>
           </div>
         ) : null}
       </div>

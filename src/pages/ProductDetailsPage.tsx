@@ -8,7 +8,7 @@ import { ProductCard } from '@/features/products/ProductCard'
 import { useCart } from '@/features/cart/cart-context'
 import { getErrorMessage } from '@/lib/errors'
 import { calcDiscountPercent, formatPrice } from '@/lib/utils'
-import { getActiveProducts, getProductById } from '@/services/productService'
+import { getProductsByCategory, getProductById } from '@/services/productService'
 import type { Product } from '@/types'
 
 export function ProductDetailsPage() {
@@ -17,30 +17,40 @@ export function ProductDetailsPage() {
   const [qty, setQty] = useState(1)
   const [product, setProduct] = useState<Product | null>(null)
   const [related, setRelated] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
     let active = true
     async function load() {
       if (!id) return
+      setLoading(true)
+      setNotFound(false)
+      setQty(1)
       try {
         const found = await getProductById(id)
         if (!active) return
         setProduct(found)
-        if (found?.category_id) {
-          const all = await getActiveProducts()
+        if (!found) {
+          setRelated([])
+          setNotFound(true)
+          setError(null)
+          return
+        }
+        if (found.category_id) {
+          const siblings = await getProductsByCategory(found.category_id)
           if (!active) return
-          setRelated(
-            all
-              .filter((p) => p.id !== found.id && p.category_id === found.category_id)
-              .slice(0, 4),
-          )
+          setRelated(siblings.filter((p) => p.id !== found.id).slice(0, 4))
         } else {
           setRelated([])
         }
+        setError(null)
       } catch (err) {
         if (!active) return
         setError(getErrorMessage(err, 'تعذر تحميل المنتج'))
+      } finally {
+        if (active) setLoading(false)
       }
     }
     void load()
@@ -49,15 +59,27 @@ export function ProductDetailsPage() {
     }
   }, [id])
 
+  if (loading) {
+    return (
+      <div className="container-athar py-16 text-center text-sm text-mocha">جاري التحميل...</div>
+    )
+  }
+
   if (error) {
     return (
       <div className="container-athar py-16 text-center text-sm text-danger">{error}</div>
     )
   }
 
-  if (!product) {
+  if (notFound || !product) {
     return (
-      <div className="container-athar py-16 text-center text-sm text-mocha">جاري التحميل...</div>
+      <div className="container-athar py-16 text-center">
+        <p className="font-display text-xl text-brown">المنتج غير متوفر</p>
+        <p className="mt-2 text-sm text-mocha">قد يكون المنتج غير نشط أو غير موجود.</p>
+        <Button asChild variant="outline" className="mt-6">
+          <Link to="/products">العودة للمنتجات</Link>
+        </Button>
+      </div>
     )
   }
 
@@ -109,7 +131,9 @@ export function ProductDetailsPage() {
               {product.is_new ? <Badge variant="soft">جديد</Badge> : null}
             </div>
 
-            <p className="text-sm leading-8 text-mocha sm:text-base">{product.description}</p>
+            {product.description ? (
+              <p className="text-sm leading-8 text-mocha sm:text-base">{product.description}</p>
+            ) : null}
 
             <p className="text-sm text-mocha">
               التوفر:{' '}
@@ -137,7 +161,9 @@ export function ProductDetailsPage() {
                   variant="ghost"
                   size="icon"
                   aria-label="زيادة الكمية"
-                  onClick={() => setQty((q) => q + 1)}
+                  onClick={() =>
+                    setQty((q) => Math.min(Math.max(product.stock_quantity, 1), q + 1))
+                  }
                 >
                   <Plus />
                 </Button>

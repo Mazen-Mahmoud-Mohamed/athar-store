@@ -54,6 +54,19 @@ export function toAppError(error: unknown, fallbackMessage = 'حدث خطأ غي
       return new AppError('not_found', 'العنصر المطلوب غير موجود.', { status, cause: error })
     }
 
+    if (code === '23505' || /duplicate key|unique constraint/i.test(message)) {
+      if (/slug/i.test(message) || /_slug_/i.test(message)) {
+        return new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.', {
+          status,
+          cause: error,
+        })
+      }
+      return new AppError('validation', 'قيمة مكررة — تحققي من البيانات المدخلة.', {
+        status,
+        cause: error,
+      })
+    }
+
     if (
       status === 400 ||
       code === '23514' ||
