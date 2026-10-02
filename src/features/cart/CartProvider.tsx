@@ -10,7 +10,16 @@ function readCart(): CartItem[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as CartItem[]
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item) =>
+        item &&
+        typeof item.productId === 'string' &&
+        typeof item.name === 'string' &&
+        typeof item.price === 'number' &&
+        typeof item.quantity === 'number' &&
+        item.quantity > 0,
+    )
   } catch {
     return []
   }
@@ -40,16 +49,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal,
       total: subtotal,
       addItem: (item, quantity = 1) => {
+        const qty = Math.max(1, Math.floor(quantity))
         setItems((prev) => {
           const existing = prev.find((p) => p.productId === item.productId)
           if (existing) {
             return prev.map((p) =>
               p.productId === item.productId
-                ? { ...p, quantity: p.quantity + quantity }
+                ? {
+                    ...p,
+                    ...item,
+                    quantity: p.quantity + qty,
+                  }
                 : p,
             )
           }
-          return [...prev, { ...item, quantity }]
+          return [...prev, { ...item, quantity: qty }]
         })
         toast.success('تمت الإضافة إلى السلة')
       },
@@ -63,7 +77,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return
         }
         setItems((prev) =>
-          prev.map((p) => (p.productId === productId ? { ...p, quantity } : p)),
+          prev.map((p) =>
+            p.productId === productId ? { ...p, quantity: Math.floor(quantity) } : p,
+          ),
+        )
+      },
+      syncItem: (productId, patch) => {
+        setItems((prev) =>
+          prev.map((p) => (p.productId === productId ? { ...p, ...patch } : p)),
         )
       },
       clearCart: () => setItems([]),

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react'
+import { Menu, Search, ShoppingBag, X } from 'lucide-react'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ const navLinks = [
   { to: '/', label: 'الرئيسية' },
   { to: '/products', label: 'المنتجات' },
   { to: '/#categories', label: 'التصنيفات' },
-  { to: '/products', label: 'عروض' },
+  { to: '/products?sale=1', label: 'عروض' },
 ]
 
 function NavItem({
@@ -32,14 +32,29 @@ function NavItem({
   label: string
   onNavigate?: () => void
 }) {
+  const isHash = to.includes('#')
+  if (isHash || to.includes('?')) {
+    return (
+      <Link
+        to={to}
+        onClick={onNavigate}
+        className="relative text-sm font-medium text-mocha transition-colors hover:text-brown"
+      >
+        {label}
+      </Link>
+    )
+  }
+
   return (
     <NavLink
       to={to}
+      end={to === '/'}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           'relative text-sm font-medium text-mocha transition-colors hover:text-brown',
-          isActive && 'text-brown after:absolute after:-bottom-1 after:start-0 after:h-px after:w-full after:bg-gold',
+          isActive &&
+            'text-brown after:absolute after:-bottom-1 after:start-0 after:h-px after:w-full after:bg-gold',
         )
       }
     >
@@ -62,6 +77,7 @@ export function Header() {
     const q = searchValue.trim()
     navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
     setSearchOpen(false)
+    setMobileOpen(false)
   }
 
   useEffect(() => {
@@ -74,7 +90,12 @@ export function Header() {
   useEffect(() => {
     setMobileOpen(false)
     setSearchOpen(false)
-  }, [location.pathname])
+  }, [location.pathname, location.search])
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get('q')
+    if (q != null) setSearchValue(q)
+  }, [location.search])
 
   return (
     <header
@@ -86,13 +107,11 @@ export function Header() {
       )}
     >
       <div className="container-athar">
-        {/* Desktop */}
         <div className="hidden h-20 items-center justify-between gap-6 md:flex">
-          <nav className="flex min-w-0 flex-1 items-center gap-6" aria-label="القائمة الرئيسية">
-            <NavItem to="/" label="الرئيسية" />
-            <NavItem to="/products" label="المنتجات" />
-            <NavItem to="/#categories" label="التصنيفات" />
-            <NavItem to="/products" label="عروض" />
+          <nav className="flex min-w-0 flex-1 items-center gap-5 lg:gap-6" aria-label="القائمة الرئيسية">
+            {navLinks.map((link) => (
+              <NavItem key={link.label} to={link.to} label={link.label} />
+            ))}
           </nav>
 
           <Link to="/" className="shrink-0" aria-label="أثر — الصفحة الرئيسية">
@@ -100,36 +119,17 @@ export function Header() {
           </Link>
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <form onSubmit={submitSearch} className="relative hidden w-full max-w-[220px] lg:block">
+            <form onSubmit={submitSearch} className="relative w-full max-w-[200px] lg:max-w-[240px]">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
               <Input
                 type="search"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="ابحث في أثر..."
+                placeholder="ابحثي في أثر..."
                 className="h-10 pe-3 ps-9"
-                aria-label="بحث"
+                aria-label="بحث في المنتجات"
               />
             </form>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              aria-label="بحث"
-              onClick={() => setSearchOpen((v) => !v)}
-            >
-              <Search />
-            </Button>
-            <Button asChild variant="ghost" size="icon" aria-label="الحساب">
-              <Link to="/admin/login">
-                <User />
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon" aria-label="المفضلة" className="hidden lg:inline-flex">
-              <Link to="/products">
-                <Heart />
-              </Link>
-            </Button>
             <Button asChild variant="ghost" size="icon" className="relative" aria-label="سلة التسوق">
               <Link to="/cart">
                 <ShoppingBag />
@@ -143,7 +143,6 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile */}
         <div className="flex h-16 items-center justify-between gap-3 md:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -165,20 +164,24 @@ export function Header() {
                     onNavigate={() => setMobileOpen(false)}
                   />
                 ))}
-                <Link
-                  to="/admin/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-medium text-mocha hover:text-brown"
-                >
-                  حسابي
-                </Link>
               </nav>
+              <form onSubmit={submitSearch} className="relative mt-8">
+                <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
+                <Input
+                  type="search"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="ابحثي في أثر..."
+                  className="h-11 pe-3 ps-9"
+                  aria-label="بحث في المنتجات"
+                />
+              </form>
               <div className="mt-10 space-y-4 border-t border-taupe/30 pt-6">
                 <p className="text-sm text-mocha">أناقة تترك أثراً</p>
                 <a
                   href={atharContact.phoneTel}
                   className="block text-sm font-medium text-brown"
-                  aria-label={`اتصل على ${atharContact.phoneDisplay}`}
+                  aria-label={`اتصلي على ${atharContact.phoneDisplay}`}
                 >
                   {atharContact.phoneDisplay}
                 </a>
@@ -219,7 +222,7 @@ export function Header() {
         </div>
 
         {searchOpen ? (
-          <div className="pb-4 md:hidden lg:hidden">
+          <div className="pb-4 md:hidden">
             <form onSubmit={submitSearch} className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
               <Input
@@ -227,9 +230,9 @@ export function Header() {
                 type="search"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="ابحث في أثر..."
+                placeholder="ابحثي في أثر..."
                 className="h-11 pe-3 ps-9"
-                aria-label="بحث"
+                aria-label="بحث في المنتجات"
               />
             </form>
           </div>

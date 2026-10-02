@@ -74,14 +74,15 @@ export function toAppError(error: unknown, fallbackMessage = 'حدث خطأ غي
       code === '22P02' ||
       /invalid|required|check constraint|violates/i.test(message)
     ) {
-      return new AppError('validation', message, { status, cause: error })
+      return new AppError('validation', fallbackMessage, { status, cause: error })
     }
 
     if (code?.startsWith('PGRST') || code?.startsWith('23') || status === 500) {
       return new AppError('database', 'تعذر إكمال العملية حالياً.', { status, cause: error })
     }
 
-    return new AppError('unknown', message, { status, cause: error })
+    // Never surface raw DB/network payloads to the UI.
+    return new AppError('unknown', fallbackMessage, { status, cause: error })
   }
 
   if (typeof error === 'string') {
