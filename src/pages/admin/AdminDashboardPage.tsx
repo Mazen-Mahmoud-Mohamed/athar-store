@@ -4,7 +4,7 @@ import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/lib/errors'
 import { adminGetAllCategories } from '@/services/categoryService'
-import { adminGetOrders } from '@/services/orderService'
+import { adminGetOrderCounts } from '@/services/orderService'
 import { adminGetAllProducts } from '@/services/productService'
 
 export function AdminDashboardPage() {
@@ -20,16 +20,16 @@ export function AdminDashboardPage() {
     let active = true
     async function load() {
       try {
-        const [products, categories, orders] = await Promise.all([
+        const [products, categories, orderCounts] = await Promise.all([
           adminGetAllProducts(),
           adminGetAllCategories(),
-          adminGetOrders(),
+          adminGetOrderCounts(),
         ])
         if (!active) return
         setStats({
           products: products.length,
           categories: categories.length,
-          orders: orders.length,
+          orders: orderCounts.total,
           featured: products.filter((p) => p.is_featured).length,
         })
       } catch (err) {
