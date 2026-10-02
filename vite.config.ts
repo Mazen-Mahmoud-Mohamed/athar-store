@@ -1,13 +1,31 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
+/** GitHub Pages serves project sites at /<repo>/ — copy index.html to 404.html for SPA deep links. */
+function githubPagesSpaFallback(): Plugin {
+  return {
+    name: 'github-pages-spa-fallback',
+    closeBundle() {
+      const distDir = path.resolve(rootDir, 'dist')
+      const indexHtml = path.join(distDir, 'index.html')
+      const fallbackHtml = path.join(distDir, '404.html')
+      if (fs.existsSync(indexHtml)) {
+        fs.copyFileSync(indexHtml, fallbackHtml)
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // Repository: Mazen-Mahmoud-Mohamed/athar-store → https://…github.io/athar-store/
+  base: '/athar-store/',
+  plugins: [react(), tailwindcss(), githubPagesSpaFallback()],
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
