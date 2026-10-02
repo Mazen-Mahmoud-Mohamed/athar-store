@@ -41,14 +41,14 @@ jobs:
           test -f dist/index.html
           test -f dist/404.html
           grep -q '/athar-store/assets/' dist/index.html
-          # Ensure placeholder credentials were not baked into the bundle
-          if grep -R -n -E 'your-athar|your-project-ref|your-anon-public-key|your-athar-anon' dist/; then
-            echo 'Placeholder Supabase credentials found in dist' >&2
-            exit 1
-          fi
-          # Fail if Vite env vars were missing (client would be unconfigured)
+          # Fail if Vite env vars were missing at build time (client would be unconfigured).
+          # Note: do not grep for "your-athar" strings — those appear in client-side validation regexes.
           if ! grep -R -n 'rotcgsayspiphcisepmu' dist/assets >/dev/null; then
             echo 'Expected athar Supabase project ref missing from build output — check Actions secrets' >&2
+            exit 1
+          fi
+          if grep -R -n 'https://your-athar-project-ref.supabase.co' dist/ >/dev/null; then
+            echo 'Placeholder Supabase URL found in dist' >&2
             exit 1
           fi
 
