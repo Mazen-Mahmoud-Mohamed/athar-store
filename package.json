@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:demo-catalog": "node scripts/seed-demo-catalog.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
