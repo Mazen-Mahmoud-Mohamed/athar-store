@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react'
 import { BrandLogo } from '@/components/BrandLogo'
+import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -11,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { atharContact } from '@/config/contact'
 import { useCart } from '@/features/cart/cart-context'
 import { cn } from '@/lib/utils'
 
@@ -171,8 +173,21 @@ export function Header() {
                   حسابي
                 </Link>
               </nav>
-              <div className="mt-10 border-t border-taupe/30 pt-6 text-sm text-mocha">
-                أناقة تترك أثراً
+              <div className="mt-10 space-y-4 border-t border-taupe/30 pt-6">
+                <p className="text-sm text-mocha">أناقة تترك أثراً</p>
+                <a
+                  href={atharContact.phoneTel}
+                  className="block text-sm font-medium text-brown"
+                  aria-label={`اتصل على ${atharContact.phoneDisplay}`}
+                >
+                  {atharContact.phoneDisplay}
+                </a>
+                <ContactLinks
+                  className="text-mocha"
+                  iconClassName="hover:border-gold/50 hover:text-brown"
+                  compact
+                />
+                <WhatsAppCta className="w-full" />
               </div>
             </SheetContent>
           </Sheet>

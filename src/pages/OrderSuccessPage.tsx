@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BrandLogo } from '@/components/BrandLogo'
+import { WhatsAppCta } from '@/components/ContactLinks'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
 
@@ -21,6 +22,9 @@ export function OrderSuccessPage() {
             <Button asChild variant="outline">
               <Link to="/">العودة للرئيسية</Link>
             </Button>
+          </div>
+          <div className="mt-5 flex justify-center">
+            <WhatsAppCta />
           </div>
         </div>
       </div>
