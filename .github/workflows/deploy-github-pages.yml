@@ -40,7 +40,12 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/404.html
-          grep -q '/athar-store/assets/' dist/index.html
+          # Custom domain serves from site root — assets must be /assets/... not /athar-store/assets/...
+          grep -q '/assets/' dist/index.html
+          if grep -q '/athar-store/assets/' dist/index.html; then
+            echo 'Build still references /athar-store/assets/ which breaks athar.qd.je custom domain' >&2
+            exit 1
+          fi
           # Fail if Vite env vars were missing at build time (client would be unconfigured).
           # Note: do not grep for "your-athar" strings — those appear in client-side validation regexes.
           if ! grep -R -n 'rotcgsayspiphcisepmu' dist/assets >/dev/null; then

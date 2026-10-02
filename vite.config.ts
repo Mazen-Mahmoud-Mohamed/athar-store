@@ -23,8 +23,9 @@ function githubPagesSpaFallback(): Plugin {
 }
 
 export default defineConfig({
-  // Repository: Mazen-Mahmoud-Mohamed/athar-store → https://…github.io/athar-store/
-  base: '/athar-store/',
+  // Custom domain athar.qd.je serves the site at domain root (not /athar-store/).
+  // GitHub Pages redirects github.io/athar-store/ → http://athar.qd.je/
+  base: '/',
   plugins: [react(), tailwindcss(), githubPagesSpaFallback()],
   resolve: {
     alias: {
