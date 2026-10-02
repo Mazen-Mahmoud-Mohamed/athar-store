@@ -1,0 +1,176 @@
+{
+  "note": "Visual inventory only. No prices, official names, stock, or Supabase rows were invented. Upload via /admin/products after providing the missing fields.",
+  "sourceFolder": "products/",
+  "storageBucket": "product-images",
+  "supabaseCatalogSeeded": false,
+  "missingForAllProducts": [
+    "official_product_name",
+    "slug",
+    "price",
+    "old_price",
+    "stock_quantity",
+    "category_id",
+    "arabic_description",
+    "is_featured",
+    "is_new"
+  ],
+  "suggestedCategoriesToCreateManually": [
+    "حقائب يد",
+    "حقائب كروس / كتف",
+    "توت / شنط مربعة"
+  ],
+  "assets": [
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.43.09 AM.jpeg",
+      "visualType": "structured woven flap handbag",
+      "colors": ["chocolate brown", "beige"],
+      "shot": "lifestyle model outdoor",
+      "likelyCategory": "حقائب يد",
+      "notes": "Chevron/herringbone weave, gold chain + top handle"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.43.10 AM.jpeg",
+      "visualType": "structured woven flap handbag",
+      "colors": ["navy", "cream"],
+      "shot": "lifestyle model outdoor",
+      "likelyCategory": "حقائب يد",
+      "notes": "Floral scarf on handle, gold chain"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.43.10 AM (1).jpeg",
+      "visualType": "structured woven flap handbag",
+      "colors": ["charcoal/black", "taupe"],
+      "shot": "lifestyle model outdoor",
+      "likelyCategory": "حقائب يد",
+      "notes": "Green botanical scarf on handle"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.43.10 AM (2).jpeg",
+      "visualType": "structured woven flap handbag",
+      "colors": ["navy", "cream"],
+      "shot": "boutique display",
+      "likelyCategory": "حقائب يد",
+      "notes": "Display card shows 'AURORA CHIC' — confirm this is an Athar product before publishing"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.43.11 AM.jpeg",
+      "visualType": "structured woven flap handbag",
+      "colors": ["espresso brown", "taupe"],
+      "shot": "boutique display with orchids",
+      "likelyCategory": "حقائب يد",
+      "notes": "Green scarf on handle; matching clutch visible in background (not a separate file)"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.48.44 AM.jpeg",
+      "visualType": "group shot — square cord totes with heart charm",
+      "colors": ["black", "dark brown"],
+      "shot": "studio group",
+      "likelyCategory": "توت / شنط مربعة",
+      "notes": "Contains 2–3 color variants in one image; needs split decision (one product vs variants)"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.48.45 AM.jpeg",
+      "visualType": "group shot — two striped woven box handbags",
+      "colors": ["beige/tan", "black/gray"],
+      "shot": "studio pair",
+      "likelyCategory": "حقائب يد",
+      "notes": "Two colorways in one image; needs split decision"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.48.47 AM.jpeg",
+      "visualType": "woven flap handbag",
+      "colors": ["brown", "tan", "cream"],
+      "shot": "lifestyle close-up held",
+      "likelyCategory": "حقائب يد",
+      "notes": "Gold twist-lock + chain"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.48.48 AM.jpeg",
+      "visualType": "woven flap handbag",
+      "colors": ["black", "cream"],
+      "shot": "lifestyle styled flat",
+      "likelyCategory": "حقائب يد",
+      "notes": "Black/cream stripes, paisley scarf on handle"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.12 AM.jpeg",
+      "visualType": "solid woven top-handle handbag",
+      "colors": ["black"],
+      "shot": "studio product",
+      "likelyCategory": "حقائب يد",
+      "notes": "Gold bar clasp + chain"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.12 AM (1).jpeg",
+      "visualType": "quilted mini handbag with scarf",
+      "colors": ["burgundy"],
+      "shot": "studio product",
+      "likelyCategory": "حقائب يد",
+      "notes": "Lavender patterned scarf on handle"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.13 AM.jpeg",
+      "visualType": "metallic sparkle crochet shoulder bag",
+      "colors": ["black", "gold thread"],
+      "shot": "hanging lifestyle",
+      "likelyCategory": "حقائب كتف",
+      "notes": "Dual gold chain straps"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.13 AM (1).jpeg",
+      "visualType": "sparkle ribbed handbag",
+      "colors": ["charcoal", "silver"],
+      "shot": "styled with pine accents",
+      "likelyCategory": "حقائب يد",
+      "notes": "Watermark @zaplatanebyms visible — confirm rights/branding before publish"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.13 AM (2).jpeg",
+      "visualType": "woven flap handbag",
+      "colors": ["olive green"],
+      "shot": "studio product",
+      "likelyCategory": "حقائب يد",
+      "notes": "Gold clasp; small brand plate on flap"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.13 AM (3).jpeg",
+      "visualType": "group shot — three black woven handbags",
+      "colors": ["black"],
+      "shot": "studio trio on plinths",
+      "likelyCategory": "حقائب يد",
+      "notes": "Three distinct silhouettes in one image; needs split into separate products"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.14 AM.jpeg",
+      "visualType": "ribbed cord top-handle handbag",
+      "colors": ["burgundy"],
+      "shot": "studio on faux fur",
+      "likelyCategory": "حقائب يد",
+      "notes": "Floral scarf bow on handle"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.14 AM (1).jpeg",
+      "visualType": "textured crochet flap bag",
+      "colors": ["terracotta/rust"],
+      "shot": "studio product",
+      "likelyCategory": "حقائب كتف",
+      "notes": "Ornate gold clasp + chain"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.14 AM (2).jpeg",
+      "visualType": "braided black handbag",
+      "colors": ["black"],
+      "shot": "studio styled",
+      "likelyCategory": "حقائب يد",
+      "notes": "Triangular gold clasp + chain"
+    },
+    {
+      "file": "WhatsApp Image 2026-10-03 at 1.51.14 AM (3).jpeg",
+      "visualType": "ribbed black handbag with beige bands",
+      "colors": ["black", "beige"],
+      "shot": "studio product",
+      "likelyCategory": "حقائب يد",
+      "notes": "Gold bar clasp; brand plaque bottom-right"
+    }
+  ]
+}
