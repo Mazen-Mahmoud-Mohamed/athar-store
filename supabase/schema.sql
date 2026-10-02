@@ -1,0 +1,11 @@
+-- أثر / athar — consolidated schema reference
+-- Source of truth for deployment: supabase/migrations/
+--   20261003000001_initial_schema.sql
+--   20261003000002_rls.sql
+--   20261003000003_storage.sql
+-- Optional demo data: supabase/seed.sql
+--
+-- Apply ONLY to the dedicated Supabase project named "athar".
+-- Do not apply to unrelated projects.
+
+-- See migrations for the full reproducible schema, RLS, RPC, and Storage setup.

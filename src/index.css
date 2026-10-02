@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand palette — derived from أثر logo */
+  --color-cream: #fbf8f3;
+  --color-ivory: #f7f1e8;
+  --color-sand: #ebe3d6;
+  --color-taupe: #c9b8a4;
+  --color-mocha: #8a6f58;
+  --color-brown: #4a3728;
+  --color-espresso: #2f2118;
+  --color-gold: #b8956c;
+  --color-gold-soft: #d4bc95;
+  --color-gold-deep: #9a7548;
+  --color-blush: #e8d5cb;
+  --color-mist: #f3ece3;
+  --color-success: #5c7a5a;
+  --color-danger: #9a4f45;
+
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-brown);
+  --color-muted: var(--color-mist);
+  --color-muted-foreground: var(--color-mocha);
+  --color-border: color-mix(in srgb, var(--color-taupe) 45%, transparent);
+  --color-ring: var(--color-gold);
+  --color-primary: var(--color-brown);
+  --color-primary-foreground: var(--color-cream);
+  --color-accent: var(--color-gold);
+  --color-accent-foreground: var(--color-espresso);
+  --color-card: #fffcf8;
+  --color-card-foreground: var(--color-brown);
+
+  --shadow-soft: 0 8px 30px rgb(47 33 24 / 0.06);
+  --shadow-lift: 0 14px 40px rgb(47 33 24 / 0.1);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "kern" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-gold) 28%, transparent);
+    color: var(--color-espresso);
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-gold;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-balance;
+  }
+
+  img {
+    @apply max-w-full;
+  }
+}
+
+@layer utilities {
+  .container-athar {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .text-editorial {
+    @apply tracking-wide;
+  }
+
+  .divider-gold {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-gold-soft),
+      transparent
+    );
+    height: 1px;
+  }
+
+  .surface-paper {
+    background:
+      radial-gradient(ellipse at top, rgb(255 252 248 / 0.9), transparent 55%),
+      linear-gradient(180deg, var(--color-cream), var(--color-ivory));
+  }
+
+  .surface-warm {
+    background:
+      linear-gradient(135deg, rgb(232 213 203 / 0.35), transparent 40%),
+      linear-gradient(180deg, var(--color-mist), var(--color-ivory));
+  }
+}
