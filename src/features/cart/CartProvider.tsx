@@ -87,6 +87,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
           prev.map((p) => (p.productId === productId ? { ...p, ...patch } : p)),
         )
       },
+      replaceItems: (next) => {
+        setItems(
+          next.filter(
+            (item) =>
+              item &&
+              typeof item.productId === 'string' &&
+              typeof item.quantity === 'number' &&
+              item.quantity > 0,
+          ),
+        )
+      },
       clearCart: () => setItems([]),
     }
   }, [items])

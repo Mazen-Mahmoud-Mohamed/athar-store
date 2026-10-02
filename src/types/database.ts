@@ -249,7 +249,7 @@ export type Database = {
           p_notes?: string | null
           p_items: Json
         }
-        Returns: string
+        Returns: Json
       }
     }
     Enums: {

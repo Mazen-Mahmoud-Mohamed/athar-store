@@ -24,3 +24,12 @@ export const atharSocialLinks: ReadonlyArray<{
   { key: 'tiktok', label: 'تيك توك', href: atharContact.tiktokUrl, external: true },
   { key: 'whatsapp', label: 'واتساب', href: atharContact.whatsappUrl, external: true },
 ]
+
+/** WhatsApp deep link with a safe, non-PII prefilled message. */
+export function whatsappWithMessage(message: string) {
+  return `${atharContact.whatsappUrl}?text=${encodeURIComponent(message)}`
+}
+
+export function whatsappOrderFollowUpUrl(orderReference: string) {
+  return whatsappWithMessage(`مرحباً أثر، أتابع طلبي برقم ${orderReference}`)
+}

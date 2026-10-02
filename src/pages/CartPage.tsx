@@ -301,7 +301,7 @@ export function CartPage() {
                 </Button>
               )}
               <p className="mt-3 text-center text-xs text-mocha">
-                الدفع وإرسال الطلب سيُفعّلان في المرحلة القادمة.
+                الدفع عند الاستلام — يتم تأكيد الطلب بعد المراجعة.
               </p>
             </aside>
           </div>

@@ -10,6 +10,7 @@ export type CartContextValue = {
   removeItem: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   syncItem: (productId: string, patch: Partial<Omit<CartItem, 'productId' | 'quantity'>>) => void
+  replaceItems: (items: CartItem[]) => void
   clearCart: () => void
 }
 

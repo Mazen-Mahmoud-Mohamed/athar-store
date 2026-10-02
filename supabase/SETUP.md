@@ -32,6 +32,7 @@ Apply SQL in the athar Dashboard SQL Editor as role `postgres`, in order:
 1. `supabase/migrations/20261003000001_initial_schema.sql`
 2. `supabase/migrations/20261003000002_rls.sql`
 3. `supabase/migrations/20261003000003_storage.sql`
+4. `supabase/migrations/20261003000004_guest_order_confirmation.sql` (guest checkout confirmation payload)
 
 Or, after logging the CLI into the account that owns athar:
 
