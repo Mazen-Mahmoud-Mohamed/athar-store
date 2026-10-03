@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
 import { Separator } from '@/components/ui/separator'
@@ -29,7 +30,7 @@ export function Footer() {
       <div className="container-athar py-14">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1.1fr]">
           <div className="max-w-sm space-y-4">
-            <BrandLogo imgClassName="h-20 w-20 brightness-110" />
+            <BrandLogo src={atharLogoTransparent} imgClassName="h-20 w-20" />
             <p className="font-display text-2xl font-semibold">أثر</p>
             <p className="text-sm leading-7 text-cream/70">
               علامة مصرية راقية للحقائب والإكسسوارات. نختار التفاصيل بعناية لتترك إطلالتك أثراً يدوم.

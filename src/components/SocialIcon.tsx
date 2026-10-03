@@ -43,21 +43,17 @@ function InstagramIcon({ className, ...props }: IconProps) {
   )
 }
 
+/** Official TikTok-style note mark (filled), matched to ~16px social icon weight. */
 function TikTokIcon({ className, ...props }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       className={cn('size-4', className)}
       aria-hidden="true"
       {...props}
     >
-      <path d="M14 4v10.2a3.8 3.8 0 1 1-2.6-3.6V8.2A6.2 6.2 0 0 0 16.8 12V9.3A6.2 6.2 0 0 1 14 4Z" />
-      <path d="M14 4c.4 2.2 1.8 3.6 4 4" />
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15.2a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.73a8.2 8.2 0 0 0 4.76 1.52V6.79a4.85 4.85 0 0 1-1-.1z" />
     </svg>
   )
 }

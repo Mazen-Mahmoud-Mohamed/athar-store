@@ -6,6 +6,8 @@ type BrandLogoProps = {
   imgClassName?: string
   alt?: string
   priority?: boolean
+  /** Override logo asset (e.g. transparent mark for dark surfaces). */
+  src?: string
 }
 
 export function BrandLogo({
@@ -13,11 +15,12 @@ export function BrandLogo({
   imgClassName,
   alt = 'أثر — شعار العلامة',
   priority = false,
+  src = atharLogo,
 }: BrandLogoProps) {
   return (
     <span className={cn('inline-flex items-center justify-center', className)}>
       <img
-        src={atharLogo}
+        src={src}
         alt={alt}
         width={160}
         height={160}
