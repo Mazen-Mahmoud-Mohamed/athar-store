@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Search, ShoppingBag, X } from 'lucide-react'
+import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
-import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
+import { ContactLinks } from '@/components/ContactLinks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -12,7 +13,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { atharContact } from '@/config/contact'
 import { useCart } from '@/features/cart/cart-context'
 import { cn } from '@/lib/utils'
 
@@ -108,18 +108,26 @@ export function Header() {
     >
       <div className="container-athar">
         <div className="hidden h-20 items-center justify-between gap-6 md:flex">
-          <nav className="flex min-w-0 flex-1 items-center gap-5 lg:gap-6" aria-label="القائمة الرئيسية">
-            {navLinks.map((link) => (
-              <NavItem key={link.label} to={link.to} label={link.label} />
-            ))}
-          </nav>
+          <div className="flex min-w-0 items-center gap-4 lg:gap-5">
+            <Link to="/" className="shrink-0" aria-label="أثر — الصفحة الرئيسية">
+              <BrandLogo
+                priority
+                src={atharLogoTransparent}
+                imgClassName="h-14 w-14 object-contain"
+              />
+            </Link>
+            <nav
+              className="flex min-w-0 items-center gap-5 lg:gap-6"
+              aria-label="القائمة الرئيسية"
+            >
+              {navLinks.map((link) => (
+                <NavItem key={link.label} to={link.to} label={link.label} />
+              ))}
+            </nav>
+          </div>
 
-          <Link to="/" className="shrink-0" aria-label="أثر — الصفحة الرئيسية">
-            <BrandLogo priority imgClassName="h-14 w-14" />
-          </Link>
-
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <form onSubmit={submitSearch} className="relative w-full max-w-[200px] lg:max-w-[240px]">
+          <div className="flex shrink-0 items-center gap-2">
+            <form onSubmit={submitSearch} className="relative w-[200px] lg:w-[240px]">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mocha" />
               <Input
                 type="search"
@@ -143,7 +151,8 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex h-16 items-center justify-between gap-3 md:hidden">
+        <div className="flex h-16 items-center justify-between md:hidden">
+          {/* First in RTL flex = far right: hamburger */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="فتح القائمة">
@@ -151,11 +160,14 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="bg-cream">
-              <SheetHeader>
+              <SheetHeader className="items-center pe-8">
                 <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
-                <BrandLogo imgClassName="h-16 w-16" />
+                <BrandLogo
+                  src={atharLogoTransparent}
+                  imgClassName="h-16 w-16 object-contain"
+                />
               </SheetHeader>
-              <nav className="mt-8 flex flex-col gap-5" aria-label="قائمة الجوال">
+              <nav className="mt-8 flex flex-col gap-5 text-start" aria-label="قائمة الجوال">
                 {navLinks.map((link) => (
                   <NavItem
                     key={link.label}
@@ -176,29 +188,19 @@ export function Header() {
                   aria-label="بحث في المنتجات"
                 />
               </form>
-              <div className="mt-10 space-y-4 border-t border-taupe/30 pt-6">
+              <div className="mt-8 space-y-4 border-t border-taupe/30 pt-6">
                 <p className="text-sm text-mocha">أناقة تترك أثراً</p>
-                <a
-                  href={atharContact.phoneTel}
-                  className="block text-sm font-medium text-brown"
-                  aria-label={`اتصلي على ${atharContact.phoneDisplay}`}
-                >
-                  {atharContact.phoneDisplay}
-                </a>
                 <ContactLinks
+                  showPhone={false}
                   className="text-mocha"
                   iconClassName="hover:border-gold/50 hover:text-brown"
                   compact
                 />
-                <WhatsAppCta className="w-full" />
               </div>
             </SheetContent>
           </Sheet>
 
-          <Link to="/" aria-label="أثر — الصفحة الرئيسية">
-            <BrandLogo priority imgClassName="h-12 w-12" />
-          </Link>
-
+          {/* Last in RTL flex = far left: search + cart */}
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
