@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
 import { WhatsAppCta } from '@/components/ContactLinks'
 import { PageMeta } from '@/components/seo/PageMeta'
@@ -92,7 +93,11 @@ export function HomePage() {
         <div className="absolute inset-0 surface-warm" />
         <div className="container-athar relative grid items-center gap-8 py-12 sm:gap-10 lg:min-h-[72vh] lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div className="max-w-xl space-y-6">
-            <BrandLogo priority imgClassName="h-20 w-20 sm:h-24 sm:w-24" />
+            <BrandLogo
+              priority
+              src={atharLogoTransparent}
+              imgClassName="h-20 w-20 sm:h-24 sm:w-24"
+            />
             <div className="space-y-4">
               <h1 className="font-display text-4xl font-semibold leading-[1.25] text-brown sm:text-5xl lg:text-[3.25rem]">
                 أناقة تترك أثرًا
@@ -125,7 +130,11 @@ export function HomePage() {
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-sand via-mist to-blush">
-                  <BrandLogo priority imgClassName="h-44 w-44 sm:h-56 sm:w-56" />
+                  <BrandLogo
+                    priority
+                    src={atharLogoTransparent}
+                    imgClassName="h-44 w-44 sm:h-56 sm:w-56"
+                  />
                 </div>
               )}
             </div>

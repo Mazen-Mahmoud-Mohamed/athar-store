@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
-import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
+import { ContactLinks } from '@/components/ContactLinks'
 import { Separator } from '@/components/ui/separator'
-import { atharContact } from '@/config/contact'
 import { getActiveCategories } from '@/services/categoryService'
 import type { Category } from '@/types'
 
@@ -28,20 +27,24 @@ export function Footer() {
   return (
     <footer className="mt-auto border-t border-taupe/30 bg-espresso text-cream">
       <div className="container-athar py-14">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1.1fr]">
+        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-16">
           <div className="max-w-sm space-y-4">
-            <BrandLogo src={atharLogoTransparent} imgClassName="h-20 w-20" />
+            <BrandLogo
+              src={atharLogoTransparent}
+              imgClassName="h-20 w-20 object-contain"
+            />
             <p className="font-display text-2xl font-semibold">أثر</p>
             <p className="text-sm leading-7 text-cream/70">
               علامة مصرية راقية للحقائب والإكسسوارات. نختار التفاصيل بعناية لتترك إطلالتك أثراً يدوم.
             </p>
             <ContactLinks
+              showPhone={false}
               className="pt-1 text-cream/80"
               iconClassName="hover:border-gold/40 hover:text-gold-soft"
             />
           </div>
 
-          <div>
+          <div className="md:min-w-[12rem]">
             <h3 className="mb-4 text-sm font-semibold tracking-wide text-gold-soft">التسوق</h3>
             <ul className="space-y-3">
               <li>
@@ -71,32 +74,6 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-sm font-semibold tracking-wide text-gold-soft">تواصل</h3>
-            <ul className="space-y-3 text-sm text-cream/75">
-              <li>
-                <a
-                  href={atharContact.phoneTel}
-                  className="transition-colors hover:text-cream"
-                  aria-label={`اتصل على ${atharContact.phoneDisplay}`}
-                >
-                  {atharContact.phoneDisplay}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={atharContact.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-cream"
-                >
-                  واتساب
-                </a>
-              </li>
-            </ul>
-            <WhatsAppCta className="mt-5 w-full sm:w-auto" />
           </div>
         </div>
 
