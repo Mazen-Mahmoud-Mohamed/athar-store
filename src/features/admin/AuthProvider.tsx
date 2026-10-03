@@ -83,27 +83,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = onAuthStateChange((event, nextSession) => {
         if (!mounted) return
 
-        // Token refresh: keep the same identity; no profile/admin re-fetch.
+        // Keep identity on token refresh without re-querying profile.
         if (event === 'TOKEN_REFRESHED') {
           setSession(nextSession)
           setUser(nextSession?.user ?? null)
           return
         }
 
-        // External sign-out (e.g. another tab): clear access without leaving a stale admin flag.
         if (event === 'SIGNED_OUT') {
           setSession(null)
           setUser(null)
           setProfile(null)
           setIsAdmin(false)
+          return
+        }
+
+        // INITIAL_SESSION is handled by the explicit getSession() bootstrap below
+        // to avoid a double profile/admin fetch race on first load.
+        if (event === 'INITIAL_SESSION') {
+          return
+        }
+
+        // SIGNED_IN / USER_UPDATED: resolve admin access.
+        if (
+          event === 'SIGNED_IN' ||
+          event === 'USER_UPDATED' ||
+          event === 'PASSWORD_RECOVERY'
+        ) {
+          void resolveAccess(nextSession)
         }
       })
       unsubscribe = () => data.subscription.unsubscribe()
 
       try {
+        // Explicit bootstrap so loading stays true until the first session resolve finishes,
+        // even if INITIAL_SESSION is delayed/missed.
         const current = await getSession()
         if (!mounted) return
-        // Keep loading true until session + admin/profile resolution finish.
         await resolveAccess(current)
       } finally {
         if (mounted) setLoading(false)
@@ -135,7 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!access.isAdmin) {
             await authSignOut()
             await resolveAccess(null)
-            throw new AppError('forbidden', 'هذا الحساب ليس لديه صلاحية الإدارة')
+            throw new AppError(
+              'forbidden',
+              'هذا الحساب ليس لديه صلاحية إدارة متجر أثر.',
+            )
           }
         } finally {
           setLoading(false)

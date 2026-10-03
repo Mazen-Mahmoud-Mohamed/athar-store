@@ -190,7 +190,11 @@ export function AdminProductFormPage() {
 
   return (
     <>
-      <PageMeta title={isEdit ? 'تعديل منتج' : 'إضافة منتج'} />
+      <PageMeta
+        title={isEdit ? 'تعديل منتج' : 'إضافة منتج'}
+        path={isEdit ? `/admin/products/${id}/edit` : '/admin/products/new'}
+        noIndex
+      />
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
           <h1 className="font-display text-3xl font-semibold">

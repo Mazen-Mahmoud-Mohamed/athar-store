@@ -179,7 +179,7 @@ export function AdminCategoriesPage() {
 
   return (
     <>
-      <PageMeta title="إدارة التصنيفات" />
+      <PageMeta title="إدارة التصنيفات" path="/admin/categories" noIndex />
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { BrandLogo } from '@/components/BrandLogo'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/admin/AuthProvider'
@@ -14,12 +14,14 @@ const adminLinks = [
 ]
 
 export function AdminLayout() {
+  const navigate = useNavigate()
   const { signOut, profile } = useAuth()
 
   async function handleSignOut() {
     try {
       await signOut()
       toast.message('تم تسجيل الخروج')
+      navigate('/admin/login', { replace: true })
     } catch (error) {
       toast.error(getErrorMessage(error, 'فشل تسجيل الخروج'))
     }

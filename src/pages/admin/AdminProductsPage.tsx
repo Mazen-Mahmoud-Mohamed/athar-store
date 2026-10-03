@@ -139,7 +139,7 @@ export function AdminProductsPage() {
 
   return (
     <>
-      <PageMeta title="إدارة المنتجات" />
+      <PageMeta title="إدارة المنتجات" path="/admin/products" noIndex />
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

@@ -93,7 +93,16 @@ export function Footer() {
 
         <div className="flex flex-col gap-3 text-xs text-cream/55 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} أثر. جميع الحقوق محفوظة.</p>
-          <p className="tracking-[0.25em] text-cream/40">BAGS</p>
+          <div className="flex items-center gap-4">
+            <p className="tracking-[0.25em] text-cream/40">BAGS</p>
+            <Link
+              to="/admin/login"
+              className="text-cream/35 transition-colors hover:text-cream/70"
+              aria-label="دخول لوحة الإدارة"
+            >
+              للإدارة
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
