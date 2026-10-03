@@ -1,35 +1,33 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ContactLinks, WhatsAppCta } from '@/components/ContactLinks'
 import { Separator } from '@/components/ui/separator'
 import { atharContact } from '@/config/contact'
-
-const footerLinks = [
-  {
-    title: 'التسوق',
-    links: [
-      { label: 'جميع المنتجات', to: '/products' },
-      { label: 'حقائب يد', to: '/category/handbags' },
-      { label: 'حقائب كتف', to: '/category/shoulder-bags' },
-      { label: 'حقائب سهرة', to: '/category/evening-bags' },
-    ],
-  },
-  {
-    title: 'أثر',
-    links: [
-      { label: 'قصتنا', to: '/' },
-      { label: 'العناية بالمنتجات', to: '/' },
-      { label: 'الشحن والتوصيل', to: '/' },
-      { label: 'سياسة الاستبدال', to: '/' },
-    ],
-  },
-]
+import { getActiveCategories } from '@/services/categoryService'
+import type { Category } from '@/types'
 
 export function Footer() {
+  const [categories, setCategories] = useState<Category[]>([])
+
+  useEffect(() => {
+    let active = true
+    void getActiveCategories()
+      .then((rows) => {
+        if (active) setCategories(rows)
+      })
+      .catch(() => {
+        if (active) setCategories([])
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
   return (
     <footer className="mt-auto border-t border-taupe/30 bg-espresso text-cream">
       <div className="container-athar py-14">
-        <div className="grid gap-10 md:grid-cols-[1.3fr_repeat(2,1fr)_1.1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1.1fr]">
           <div className="max-w-sm space-y-4">
             <BrandLogo imgClassName="h-20 w-20 brightness-110" />
             <p className="font-display text-2xl font-semibold">أثر</p>
@@ -42,25 +40,37 @@ export function Footer() {
             />
           </div>
 
-          {footerLinks.map((group) => (
-            <div key={group.title}>
-              <h3 className="mb-4 text-sm font-semibold tracking-wide text-gold-soft">
-                {group.title}
-              </h3>
-              <ul className="space-y-3">
-                {group.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.to}
-                      className="text-sm text-cream/75 transition-colors hover:text-cream"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <h3 className="mb-4 text-sm font-semibold tracking-wide text-gold-soft">التسوق</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link
+                  to="/products"
+                  className="text-sm text-cream/75 transition-colors hover:text-cream"
+                >
+                  جميع المنتجات
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/products?sale=1"
+                  className="text-sm text-cream/75 transition-colors hover:text-cream"
+                >
+                  عروض
+                </Link>
+              </li>
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link
+                    to={`/category/${category.slug}`}
+                    className="text-sm text-cream/75 transition-colors hover:text-cream"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <div>
             <h3 className="mb-4 text-sm font-semibold tracking-wide text-gold-soft">تواصل</h3>

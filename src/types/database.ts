@@ -251,6 +251,20 @@ export type Database = {
         }
         Returns: Json
       }
+      is_allowed_order_status_transition: {
+        Args: {
+          p_from: OrderStatus
+          p_to: OrderStatus
+        }
+        Returns: boolean
+      }
+      admin_update_order_status: {
+        Args: {
+          p_order_id: string
+          p_status: OrderStatus
+        }
+        Returns: Database['public']['Tables']['orders']['Row']
+      }
     }
     Enums: {
       order_status: OrderStatus

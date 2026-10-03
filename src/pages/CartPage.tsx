@@ -130,14 +130,25 @@ export function CartPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.map((i) => `${i.productId}:${i.quantity}`).join('|')])
 
-  const hasBlockingIssues = useMemo(
+  const isChecking = useMemo(
     () =>
+      items.length > 0 &&
       items.some((item) => {
         const status = statuses[item.productId]
-        if (!status || status.checking) return true
-        return !status.available || status.inactive
+        return !status || status.checking
       }),
     [items, statuses],
+  )
+
+  const hasBlockingIssues = useMemo(
+    () =>
+      !isChecking &&
+      items.some((item) => {
+        const status = statuses[item.productId]
+        if (!status) return true
+        return !status.available || status.inactive
+      }),
+    [items, statuses, isChecking],
   )
 
   const liveSubtotal = useMemo(() => {
@@ -286,12 +297,21 @@ export function CartPage() {
                   <span>{formatPrice(liveSubtotal || subtotal)}</span>
                 </div>
               </div>
-              {hasBlockingIssues ? (
-                <p className="mt-4 text-xs leading-6 text-danger">
-                  تحتوي سلتك على منتجات غير متاحة أو قيد التحقق. أصلحي السلة قبل المتابعة لاحقاً.
+              {isChecking ? (
+                <p className="mt-4 text-xs leading-6 text-mocha" aria-live="polite">
+                  جارٍ التحقق من المنتجات...
                 </p>
               ) : null}
               {hasBlockingIssues ? (
+                <p className="mt-4 text-xs leading-6 text-danger">
+                  تحتوي سلتك على منتجات غير متاحة. أصلحي السلة قبل المتابعة.
+                </p>
+              ) : null}
+              {isChecking ? (
+                <Button className="mt-6 w-full" size="lg" disabled>
+                  جارٍ التحقق من المنتجات...
+                </Button>
+              ) : hasBlockingIssues ? (
                 <Button className="mt-6 w-full" size="lg" disabled>
                   إتمام الطلب غير متاح حالياً
                 </Button>

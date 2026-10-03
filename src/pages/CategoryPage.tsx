@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { PageMeta } from '@/components/seo/PageMeta'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   CatalogControls,
   type CatalogControlValues,
@@ -111,7 +112,7 @@ export function CategoryPage() {
   return (
     <>
       <PageMeta
-        title={category?.name ?? 'التصنيف'}
+        title={loading ? 'جارٍ التحميل' : (category?.name ?? 'التصنيف')}
         description={
           category?.description ??
           (category ? `تسوقي منتجات ${category.name} من أثر.` : 'تصنيفات أثر للحقائب والإكسسوارات.')
@@ -122,12 +123,21 @@ export function CategoryPage() {
       <div className="container-athar py-10 sm:py-14">
         <div className="mb-8 max-w-2xl">
           <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">التصنيف</p>
-          <h1 className="font-display text-3xl font-semibold sm:text-4xl">
-            {loading ? '...' : category?.name ?? 'التصنيف'}
-          </h1>
-          {category?.description ? (
-            <p className="mt-3 text-sm leading-7 text-mocha">{category.description}</p>
-          ) : null}
+          {loading ? (
+            <div className="space-y-3" aria-busy="true" aria-label="جارٍ تحميل التصنيف">
+              <Skeleton className="h-10 w-48 sm:w-64" />
+              <Skeleton className="h-4 w-full max-w-md" />
+            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-semibold sm:text-4xl">
+                {category?.name ?? 'التصنيف'}
+              </h1>
+              {category?.description ? (
+                <p className="mt-3 text-sm leading-7 text-mocha">{category.description}</p>
+              ) : null}
+            </>
+          )}
         </div>
 
         {!loading && !notFound && !error ? (

@@ -28,6 +28,7 @@ type CatalogControlsProps = {
   categories: Category[]
   values: CatalogControlValues
   resultCount: number
+  resultCountLoading?: boolean
   onChange: (next: CatalogControlValues) => void
   onClear: () => void
   hideCategory?: boolean
@@ -158,6 +159,7 @@ export function CatalogControls({
   categories,
   values,
   resultCount,
+  resultCountLoading = false,
   onChange,
   onClear,
   hideCategory = false,
@@ -177,7 +179,7 @@ export function CatalogControls({
     <div className={cn('space-y-4', className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-mocha" aria-live="polite">
-          {resultCount} منتج
+          {resultCountLoading ? 'جارٍ التحميل...' : `${resultCount} منتج`}
         </p>
         <div className="flex items-center gap-2">
           {hasActiveFilters ? (

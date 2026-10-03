@@ -33,6 +33,9 @@ Apply SQL in the athar Dashboard SQL Editor as role `postgres`, in order:
 2. `supabase/migrations/20261003000002_rls.sql`
 3. `supabase/migrations/20261003000003_storage.sql`
 4. `supabase/migrations/20261003000004_guest_order_confirmation.sql` (guest checkout confirmation payload)
+5. `supabase/migrations/20261003000005_admin_order_status_workflow.sql` (server-side order status transitions)
+6. `supabase/migrations/20261003000006_deactivate_empty_totes_category.sql` (hide empty توت category; any-product check)
+7. `supabase/migrations/20261003000007_deactivate_empty_active_categories.sql` (hide توت when zero *active* products)
 
 Or, after logging the CLI into the account that owns athar:
 

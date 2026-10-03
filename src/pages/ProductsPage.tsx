@@ -147,7 +147,8 @@ export function ProductsPage() {
         <CatalogControls
           categories={categories}
           values={controls}
-          resultCount={loading ? 0 : filtered.length}
+          resultCount={filtered.length}
+          resultCountLoading={loading}
           onChange={updateControls}
           onClear={clearControls}
           className="mb-8 border-b border-taupe/25 pb-8"

@@ -108,6 +108,30 @@ function mapOrderRpcError(error: unknown): AppError | null {
   return null
 }
 
+function mapAdminStatusRpcError(error: unknown): AppError | null {
+  if (!error || typeof error !== 'object') return null
+  const message = String((error as { message?: string }).message ?? '')
+
+  if (/ADMIN_REQUIRED|insufficient_privilege|permission denied|not authorized/i.test(message)) {
+    return new AppError('forbidden', 'ليس لديك صلاحية لتحديث حالة الطلب.', { cause: error })
+  }
+  if (/ORDER_NOT_FOUND/i.test(message)) {
+    return new AppError('not_found', 'الطلب غير موجود.', { cause: error })
+  }
+  if (/INVALID_ORDER_STATUS_TRANSITION/i.test(message)) {
+    return new AppError(
+      'validation',
+      'لا يمكن تغيير حالة الطلب إلى هذه الحالة من الحالة الحالية.',
+      { cause: error },
+    )
+  }
+  if (/ORDER_ID_REQUIRED|ORDER_STATUS_REQUIRED/i.test(message)) {
+    return new AppError('validation', 'بيانات تحديث الحالة غير مكتملة.', { cause: error })
+  }
+
+  return null
+}
+
 function parseConfirmation(
   data: unknown,
   fallback?: { customerName: string; items: CartItem[] },
@@ -440,25 +464,31 @@ export async function adminUpdateOrderStatus(
 
   try {
     const supabase = requireSupabase()
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ status })
-      .eq('id', id)
-      .select('*')
-      .single()
+    const { data, error } = await supabase.rpc('admin_update_order_status', {
+      p_order_id: id,
+      p_status: status,
+    })
 
-    if (error) throw error
+    if (error) {
+      const mapped = mapAdminStatusRpcError(error)
+      if (mapped) throw mapped
+      throw error
+    }
 
     const detailed = await adminGetOrderById(id)
     if (!detailed) {
+      const row = data as Order
       return {
-        ...mapOrder(data as Order),
-        reference: formatOrderReference((data as Order).id),
+        ...mapOrder(row),
+        reference: formatOrderReference(row.id),
         items: [],
       }
     }
     return detailed
   } catch (error) {
+    if (error instanceof AppError) throw error
+    const mapped = mapAdminStatusRpcError(error)
+    if (mapped) throw mapped
     throw toAppError(error, 'تعذر تحديث حالة الطلب.')
   }
 }
