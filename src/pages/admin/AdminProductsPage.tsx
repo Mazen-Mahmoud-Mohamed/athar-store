@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,16 +21,10 @@ import { toast } from 'sonner'
 type ActiveFilter = 'all' | 'active' | 'inactive'
 type SortKey = 'updated_desc' | 'name_asc' | 'price_asc' | 'price_desc' | 'stock_asc'
 
-function formatUpdatedAt(value: string) {
-  try {
-    return new Date(value).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return value
-  }
+function productStatus(product: Product): { label: string; variant: 'soft' | 'danger' | 'gold' } {
+  if (!product.is_active) return { label: 'غير متاح', variant: 'danger' }
+  if (product.stock_quantity <= 0) return { label: 'نفد المخزون', variant: 'gold' }
+  return { label: 'متاح', variant: 'soft' }
 }
 
 export function AdminProductsPage() {
@@ -40,6 +37,7 @@ export function AdminProductsPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all')
   const [sort, setSort] = useState<SortKey>('updated_desc')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
   async function reload() {
     const [productRows, categoryRows] = await Promise.all([
@@ -79,7 +77,6 @@ export function AdminProductsPage() {
       if (!q) return true
       return (
         product.name.toLowerCase().includes(q) ||
-        product.slug.toLowerCase().includes(q) ||
         (product.category?.name.toLowerCase().includes(q) ?? false)
       )
     })
@@ -103,16 +100,12 @@ export function AdminProductsPage() {
     return rows
   }, [products, search, categoryId, activeFilter, sort])
 
-  async function patchFlag(
-    product: Product,
-    field: 'is_active' | 'is_featured' | 'is_new',
-    value: boolean,
-  ) {
+  async function toggleAvailability(product: Product) {
     setBusyId(product.id)
     try {
-      const updated = await adminPatchProduct(product.id, { [field]: value })
+      const updated = await adminPatchProduct(product.id, { is_active: !product.is_active })
       setProducts((prev) => prev.map((row) => (row.id === product.id ? updated : row)))
-      toast.success('تم تحديث المنتج')
+      toast.success(updated.is_active ? 'المنتج متاح الآن في المتجر' : 'تم إخفاء المنتج من المتجر')
     } catch (err) {
       toast.error(getErrorMessage(err, 'تعذر تحديث المنتج'))
     } finally {
@@ -120,16 +113,14 @@ export function AdminProductsPage() {
     }
   }
 
-  async function handleDelete(product: Product) {
-    if (!window.confirm(`هل تريدين حذف المنتج «${product.name}»؟ لا يمكن التراجع عن هذا الإجراء.`)) {
-      return
-    }
-
-    setBusyId(product.id)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setBusyId(deleteTarget.id)
     try {
-      await adminDeleteProduct(product.id)
-      setProducts((prev) => prev.filter((row) => row.id !== product.id))
+      await adminDeleteProduct(deleteTarget.id)
+      setProducts((prev) => prev.filter((row) => row.id !== deleteTarget.id))
       toast.success('تم حذف المنتج')
+      setDeleteTarget(null)
     } catch (err) {
       toast.error(getErrorMessage(err, 'تعذر حذف المنتج'))
     } finally {
@@ -137,30 +128,60 @@ export function AdminProductsPage() {
     }
   }
 
+  function ProductActions({ product }: { product: Product }) {
+    const busy = busyId === product.id
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/admin/products/${product.id}/edit`}>تعديل</Link>
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => void toggleAvailability(product)}
+        >
+          {product.is_active ? 'إخفاء' : 'إظهار'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-danger hover:text-danger"
+          disabled={busy}
+          onClick={() => setDeleteTarget(product)}
+        >
+          حذف
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <>
       <PageMeta title="إدارة المنتجات" path="/admin/products" noIndex />
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-semibold">المنتجات</h1>
-            <p className="mt-2 text-sm text-mocha">إدارة كتالوج أثر بالكامل عبر Supabase</p>
-          </div>
-          <Button asChild>
-            <Link to="/admin/products/new">منتج جديد</Link>
-          </Button>
-        </div>
+        <AdminPageHeader
+          title="المنتجات"
+          description="أضيفي وعدّلي منتجات متجرك بسهولة"
+          actions={
+            <Button asChild>
+              <Link to="/admin/products/new">+ إضافة منتج</Link>
+            </Button>
+          }
+        />
 
         <div className="grid gap-3 rounded-xl border border-taupe/40 bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5 sm:col-span-2">
             <label className="text-xs text-mocha" htmlFor="product-search">
-              بحث بالاسم
+              البحث
             </label>
             <Input
               id="product-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحثي عن منتج..."
+              placeholder="ابحث عن منتج..."
             />
           </div>
           <div className="space-y-1.5">
@@ -192,8 +213,8 @@ export function AdminProductsPage() {
               className="flex h-11 w-full rounded-md border border-taupe/50 bg-card px-3 text-sm"
             >
               <option value="all">الكل</option>
-              <option value="active">نشط فقط</option>
-              <option value="inactive">غير نشط</option>
+              <option value="active">متاح فقط</option>
+              <option value="inactive">غير متاح</option>
             </select>
           </div>
           <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
@@ -210,7 +231,7 @@ export function AdminProductsPage() {
               <option value="name_asc">الاسم</option>
               <option value="price_asc">السعر: من الأقل</option>
               <option value="price_desc">السعر: من الأعلى</option>
-              <option value="stock_asc">المخزون: الأقل أولاً</option>
+              <option value="stock_asc">الكمية: الأقل أولاً</option>
             </select>
           </div>
         </div>
@@ -221,149 +242,159 @@ export function AdminProductsPage() {
           </p>
         ) : null}
 
-        <div className="overflow-hidden rounded-xl border border-taupe/40 bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
-              <thead className="bg-mist/80 text-mocha">
-                <tr>
-                  <th className="px-4 py-3 text-start font-medium">المنتج</th>
-                  <th className="px-4 py-3 text-start font-medium">التصنيف</th>
-                  <th className="px-4 py-3 text-start font-medium">السعر</th>
-                  <th className="px-4 py-3 text-start font-medium">المخزون</th>
-                  <th className="px-4 py-3 text-start font-medium">الحالات</th>
-                  <th className="px-4 py-3 text-start font-medium">آخر تحديث</th>
-                  <th className="px-4 py-3 text-start font-medium">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-mocha">
-                      جاري التحميل...
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
-                      <p className="font-display text-base text-brown">
-                        {products.length === 0 ? 'لا توجد منتجات بعد' : 'لا نتائج مطابقة للبحث'}
-                      </p>
-                      <p className="mt-2 text-sm text-mocha">
-                        {products.length === 0
-                          ? 'أضيفي أول منتج لبدء الكتالوج.'
-                          : 'جرّبي تعديل فلاتر البحث أو التصنيف.'}
-                      </p>
-                      {products.length === 0 ? (
-                        <Button asChild className="mt-5">
-                          <Link to="/admin/products/new">إضافة منتج</Link>
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((product) => (
-                    <tr key={product.id} className="border-t border-taupe/30 align-middle">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="size-14 shrink-0 overflow-hidden rounded-md bg-mist">
-                            {product.image_url ? (
-                              <img
-                                src={product.image_url}
-                                alt=""
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-[10px] text-mocha/50">
-                                بلا صورة
-                              </div>
-                            )}
+        {loading ? (
+          <p className="text-sm text-mocha" aria-live="polite">
+            جارٍ تحميل المنتجات...
+          </p>
+        ) : filtered.length === 0 ? (
+          <AdminEmptyState
+            title={products.length === 0 ? 'لا توجد منتجات حاليًا' : 'لا نتائج مطابقة'}
+            description={
+              products.length === 0
+                ? 'ابدأ بإضافة أول منتج إلى متجرك.'
+                : 'جرّبي تعديل البحث أو التصنيف أو الحالة.'
+            }
+            action={
+              products.length === 0 ? (
+                <Button asChild>
+                  <Link to="/admin/products/new">+ إضافة منتج</Link>
+                </Button>
+              ) : null
+            }
+          />
+        ) : (
+          <>
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {filtered.map((product) => {
+                const status = productStatus(product)
+                return (
+                  <article
+                    key={product.id}
+                    className="rounded-xl border border-taupe/40 bg-card p-4"
+                  >
+                    <div className="flex gap-3">
+                      <div className="size-16 shrink-0 overflow-hidden rounded-md bg-mist">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[10px] text-mocha/50">
+                            بلا صورة
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-brown">{product.name}</p>
-                            <p className="mt-0.5 truncate text-xs text-mocha/70" dir="ltr">
-                              {product.slug}
-                            </p>
-                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-brown">{product.name}</p>
+                        <p className="mt-1 text-xs text-mocha">
+                          {product.category?.name ?? 'بدون تصنيف'}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold">
+                            {formatPrice(product.price)}
+                          </span>
+                          <Badge variant={status.variant}>{status.label}</Badge>
+                          <span className="text-xs text-mocha">
+                            الكمية: {product.stock_quantity}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-mocha">
-                        {product.category?.name ?? '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="space-y-0.5">
-                          <p className="font-medium">{formatPrice(product.price)}</p>
-                          {product.old_price != null ? (
-                            <p className="text-xs text-mocha line-through">
-                              {formatPrice(product.old_price)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">{product.stock_quantity}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          <Badge variant={product.is_active ? 'soft' : 'danger'}>
-                            {product.is_active ? 'نشط' : 'موقوف'}
-                          </Badge>
-                          {product.is_featured ? <Badge variant="gold">مميز</Badge> : null}
-                          {product.is_new ? <Badge variant="outline">جديد</Badge> : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-mocha">{formatUpdatedAt(product.updated_at)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          <Button asChild variant="outline" size="sm">
-                            <Link to={`/admin/products/${product.id}/edit`}>تعديل</Link>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={busyId === product.id}
-                            onClick={() => void patchFlag(product, 'is_active', !product.is_active)}
-                          >
-                            {product.is_active ? 'إيقاف' : 'تفعيل'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={busyId === product.id}
-                            onClick={() =>
-                              void patchFlag(product, 'is_featured', !product.is_featured)
-                            }
-                          >
-                            {product.is_featured ? 'إلغاء التمييز' : 'تمييز'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={busyId === product.id}
-                            onClick={() => void patchFlag(product, 'is_new', !product.is_new)}
-                          >
-                            {product.is_new ? 'إلغاء جديد' : 'جديد'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-danger hover:text-danger"
-                            disabled={busyId === product.id}
-                            onClick={() => void handleDelete(product)}
-                          >
-                            حذف
-                          </Button>
-                        </div>
-                      </td>
+                      </div>
+                    </div>
+                    <div className="mt-3 border-t border-taupe/30 pt-3">
+                      <ProductActions product={product} />
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-hidden rounded-xl border border-taupe/40 bg-card md:block">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead className="bg-mist/80 text-mocha">
+                    <tr>
+                      <th className="px-4 py-3 text-start font-medium">المنتج</th>
+                      <th className="px-4 py-3 text-start font-medium">التصنيف</th>
+                      <th className="px-4 py-3 text-start font-medium">السعر</th>
+                      <th className="px-4 py-3 text-start font-medium">الكمية</th>
+                      <th className="px-4 py-3 text-start font-medium">الحالة</th>
+                      <th className="px-4 py-3 text-start font-medium">إجراءات</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map((product) => {
+                      const status = productStatus(product)
+                      return (
+                        <tr key={product.id} className="border-t border-taupe/30 align-middle">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="size-14 shrink-0 overflow-hidden rounded-md bg-mist">
+                                {product.image_url ? (
+                                  <img
+                                    src={product.image_url}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[10px] text-mocha/50">
+                                    بلا صورة
+                                  </div>
+                                )}
+                              </div>
+                              <p className="font-medium text-brown">{product.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-mocha">
+                            {product.category?.name ?? '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium">{formatPrice(product.price)}</p>
+                            {product.old_price != null ? (
+                              <p className="text-xs text-mocha line-through">
+                                {formatPrice(product.old_price)}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3">{product.stock_quantity}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                              {product.is_featured ? (
+                                <Badge variant="gold">مميز</Badge>
+                              ) : null}
+                              {product.is_new ? <Badge variant="outline">جديد</Badge> : null}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <ProductActions product={product} />
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      <AdminConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        title="حذف المنتج؟"
+        description={`هل أنت متأكد من حذف «${deleteTarget?.name ?? ''}»؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف المنتج"
+        destructive
+        busy={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onConfirm={() => void confirmDelete()}
+      />
     </>
   )
 }

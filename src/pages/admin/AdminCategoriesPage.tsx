@@ -1,4 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,6 +54,7 @@ export function AdminCategoriesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
 
   async function reload() {
     const data = await adminGetAllCategories()
@@ -122,7 +126,7 @@ export function AdminCategoriesPage() {
     try {
       const payload = {
         name: form.name,
-        slug: form.slug,
+        slug: form.slug.trim() || slugifyArabic(form.name),
         description: form.description,
         sort_order: Number(form.sort_order || 0),
         is_active: form.is_active,
@@ -136,7 +140,7 @@ export function AdminCategoriesPage() {
         await adminReplaceCategoryImage(saved.id, imageFile, saved.image_url)
       }
 
-      toast.success(editing ? 'تم تحديث التصنيف' : 'تم إنشاء التصنيف')
+      toast.success(editing ? 'تم حفظ التصنيف' : 'تم إضافة التصنيف')
       setOpen(false)
       setEditing(null)
       await reload()
@@ -152,7 +156,7 @@ export function AdminCategoriesPage() {
     try {
       await adminToggleCategoryActive(category.id, !category.is_active)
       await reload()
-      toast.success(category.is_active ? 'تم إيقاف التصنيف' : 'تم تفعيل التصنيف')
+      toast.success(category.is_active ? 'تم إخفاء التصنيف' : 'التصنيف متاح الآن')
     } catch (err) {
       toast.error(getErrorMessage(err, 'تعذر تحديث الحالة'))
     } finally {
@@ -160,18 +164,21 @@ export function AdminCategoriesPage() {
     }
   }
 
-  async function handleDelete(category: Category) {
-    if (!window.confirm(`هل تريدين حذف التصنيف «${category.name}»؟ لا يمكن التراجع عن هذا الإجراء.`)) {
-      return
-    }
-
-    setBusyId(category.id)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setBusyId(deleteTarget.id)
     try {
-      await adminDeleteCategory(category.id)
+      await adminDeleteCategory(deleteTarget.id)
       toast.success('تم حذف التصنيف')
+      setDeleteTarget(null)
       await reload()
     } catch (err) {
-      toast.error(getErrorMessage(err, 'تعذر حذف التصنيف'))
+      toast.error(
+        getErrorMessage(
+          err,
+          'لا يمكن حذف هذا التصنيف لأنه يحتوي على منتجات. قم بنقل المنتجات إلى تصنيف آخر أولًا.',
+        ),
+      )
     } finally {
       setBusyId(null)
     }
@@ -181,15 +188,15 @@ export function AdminCategoriesPage() {
     <>
       <PageMeta title="إدارة التصنيفات" path="/admin/categories" noIndex />
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-semibold">التصنيفات</h1>
-            <p className="mt-2 text-sm text-mocha">تنظيم مجموعات أثر — مرتبطة مباشرة بقاعدة البيانات</p>
-          </div>
-          <Button type="button" onClick={openCreate}>
-            تصنيف جديد
-          </Button>
-        </div>
+        <AdminPageHeader
+          title="التصنيفات"
+          description="نظّمي مجموعات المنتجات في متجرك"
+          actions={
+            <Button type="button" onClick={openCreate}>
+              + إضافة تصنيف
+            </Button>
+          }
+        />
 
         {error ? (
           <p className="rounded-md border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -198,15 +205,19 @@ export function AdminCategoriesPage() {
         ) : null}
 
         {loading ? (
-          <p className="text-sm text-mocha">جاري التحميل...</p>
+          <p className="text-sm text-mocha" aria-live="polite">
+            جارٍ تحميل التصنيفات...
+          </p>
         ) : categories.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-taupe/50 bg-card px-6 py-16 text-center">
-            <p className="font-display text-lg text-brown">لا توجد تصنيفات بعد</p>
-            <p className="mt-2 text-sm text-mocha">ابدئي بإضافة أول مجموعة لمتجر أثر.</p>
-            <Button type="button" className="mt-6" onClick={openCreate}>
-              إضافة تصنيف
-            </Button>
-          </div>
+          <AdminEmptyState
+            title="لا توجد تصنيفات حاليًا"
+            description="أضيفي أول تصنيف لتنظيم منتجاتك."
+            action={
+              <Button type="button" onClick={openCreate}>
+                + إضافة تصنيف
+              </Button>
+            }
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {categories.map((category) => (
@@ -229,20 +240,15 @@ export function AdminCategoriesPage() {
                 </div>
                 <div className="flex flex-1 flex-col gap-3 p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h2 className="font-display text-lg font-semibold">{category.name}</h2>
-                      <p className="mt-1 text-xs text-mocha/80" dir="ltr">
-                        /{category.slug}
-                      </p>
-                    </div>
+                    <h2 className="font-display text-lg font-semibold">{category.name}</h2>
                     <Badge variant={category.is_active ? 'soft' : 'danger'}>
-                      {category.is_active ? 'نشط' : 'موقوف'}
+                      {category.is_active ? 'متاح' : 'غير متاح'}
                     </Badge>
                   </div>
                   {category.description ? (
                     <p className="line-clamp-2 text-sm leading-7 text-mocha">{category.description}</p>
                   ) : null}
-                  <p className="text-xs text-mocha/70">الترتيب: {category.sort_order}</p>
+                  <p className="text-xs text-mocha/70">ترتيب الظهور: {category.sort_order}</p>
                   <div className="mt-auto flex flex-wrap gap-2 pt-1">
                     <Button
                       type="button"
@@ -260,7 +266,7 @@ export function AdminCategoriesPage() {
                       disabled={busyId === category.id}
                       onClick={() => void handleToggle(category)}
                     >
-                      {category.is_active ? 'إيقاف' : 'تفعيل'}
+                      {category.is_active ? 'إخفاء' : 'إظهار'}
                     </Button>
                     <Button
                       type="button"
@@ -268,7 +274,7 @@ export function AdminCategoriesPage() {
                       variant="ghost"
                       className="text-danger hover:text-danger"
                       disabled={busyId === category.id}
-                      onClick={() => void handleDelete(category)}
+                      onClick={() => setDeleteTarget(category)}
                     >
                       حذف
                     </Button>
@@ -279,6 +285,19 @@ export function AdminCategoriesPage() {
           </div>
         )}
       </div>
+
+      <AdminConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        title="حذف التصنيف؟"
+        description={`هل أنت متأكد من حذف «${deleteTarget?.name ?? ''}»؟ إذا كان يحتوي على منتجات فلن يتم الحذف.`}
+        confirmLabel="حذف التصنيف"
+        destructive
+        busy={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onConfirm={() => void confirmDelete()}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -296,20 +315,6 @@ export function AdminCategoriesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cat-slug">المعرّف (Slug)</Label>
-              <Input
-                id="cat-slug"
-                dir="ltr"
-                className="text-start"
-                value={form.slug}
-                onChange={(e) => {
-                  setSlugManual(true)
-                  setForm((prev) => ({ ...prev, slug: e.target.value }))
-                }}
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="cat-description">الوصف</Label>
               <textarea
                 id="cat-description"
@@ -320,13 +325,14 @@ export function AdminCategoriesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cat-sort">الترتيب</Label>
+              <Label htmlFor="cat-sort">ترتيب الظهور</Label>
               <Input
                 id="cat-sort"
                 type="number"
                 value={form.sort_order}
                 onChange={(e) => setForm((prev) => ({ ...prev, sort_order: e.target.value }))}
               />
+              <p className="text-xs text-mocha">الأرقام الأصغر تظهر أولاً.</p>
             </div>
             <label className="inline-flex items-center gap-2 text-sm">
               <input
@@ -334,7 +340,7 @@ export function AdminCategoriesPage() {
                 checked={form.is_active}
                 onChange={(e) => setForm((prev) => ({ ...prev, is_active: e.target.checked }))}
               />
-              نشط (يظهر في المتجر)
+              التصنيف متاح في المتجر
             </label>
             <div className="space-y-2">
               <Label htmlFor="cat-image">صورة التصنيف (اختياري)</Label>
@@ -358,7 +364,7 @@ export function AdminCategoriesPage() {
               ) : null}
             </div>
             <Button type="submit" disabled={saving} className="w-full">
-              {saving ? 'جاري الحفظ...' : 'حفظ'}
+              {saving ? 'جارٍ الحفظ...' : 'حفظ التصنيف'}
             </Button>
           </form>
         </DialogContent>

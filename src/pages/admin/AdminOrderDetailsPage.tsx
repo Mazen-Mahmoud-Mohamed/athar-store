@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getErrorMessage } from '@/lib/errors'
 import {
+  ORDER_STATUS_ACTION_LABELS,
   ORDER_STATUS_LABELS,
   customerWhatsAppUrl,
   formatAdminDateTime,
@@ -123,7 +124,9 @@ export function AdminOrderDetailsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs tracking-[0.2em] text-gold-deep">تفاصيل الطلب</p>
-            <h1 className="mt-1 font-display text-3xl font-semibold">{order.reference}</h1>
+            <h1 className="mt-1 font-display text-3xl font-semibold" dir="ltr">
+              طلب {order.reference}
+            </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge variant={orderStatusBadgeVariant(order.status)}>
                 {ORDER_STATUS_LABELS[order.status]}
@@ -139,14 +142,14 @@ export function AdminOrderDetailsPage() {
         </div>
 
         <section className="rounded-xl border border-taupe/40 bg-card p-5 sm:p-6">
-          <h2 className="font-display text-lg font-semibold">بيانات العميلة</h2>
+          <h2 className="font-display text-lg font-semibold">بيانات العميل</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-mocha">الاسم</dt>
+              <dt className="text-mocha">اسم العميل</dt>
               <dd className="font-medium">{order.customer_name}</dd>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <dt className="text-mocha">الهاتف</dt>
+              <dt className="text-mocha">رقم الهاتف</dt>
               <dd className="flex flex-wrap items-center gap-2">
                 <a
                   href={`tel:${order.phone}`}
@@ -192,7 +195,7 @@ export function AdminOrderDetailsPage() {
               <dd>{formatAdminDateTime(order.updated_at)}</dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-mocha">المجموع الفرعي</dt>
+              <dt className="text-mocha">مجموع المنتجات</dt>
               <dd>{formatPrice(order.subtotal)}</dd>
             </div>
             <div className="flex justify-between gap-4 font-semibold">
@@ -203,7 +206,7 @@ export function AdminOrderDetailsPage() {
 
           <Separator className="my-5" />
 
-          <h3 className="text-sm font-medium text-brown">تحديث الحالة</h3>
+          <h3 className="text-sm font-medium text-brown">تحديث حالة الطلب</h3>
           {terminal ? (
             <p className="mt-2 text-sm text-mocha">
               هذا الطلب في حالة نهائية ({ORDER_STATUS_LABELS[order.status]}) ولا يمكن تغييره.
@@ -211,7 +214,7 @@ export function AdminOrderDetailsPage() {
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant={orderStatusBadgeVariant(order.status)} className="self-center">
-                الحالي: {ORDER_STATUS_LABELS[order.status]}
+                الحالة الحالية: {ORDER_STATUS_LABELS[order.status]}
               </Badge>
               {allowed.map((status) => (
                 <Button
@@ -220,25 +223,25 @@ export function AdminOrderDetailsPage() {
                   size="sm"
                   variant={status === 'cancelled' ? 'outline' : 'default'}
                   disabled={saving}
-                  aria-label={`تغيير الحالة إلى ${ORDER_STATUS_LABELS[status]}`}
+                  aria-label={ORDER_STATUS_ACTION_LABELS[status]}
                   onClick={() => requestStatusChange(status)}
                 >
-                  {ORDER_STATUS_LABELS[status]}
+                  {ORDER_STATUS_ACTION_LABELS[status]}
                 </Button>
               ))}
             </div>
           )}
           {saving ? (
             <p className="mt-3 text-xs text-mocha" aria-live="polite">
-              جاري تحديث الحالة...
+              جارٍ تحديث الحالة...
             </p>
           ) : null}
         </section>
 
         <section className="rounded-xl border border-taupe/40 bg-card p-5 sm:p-6">
-          <h2 className="font-display text-lg font-semibold">عناصر الطلب</h2>
+          <h2 className="font-display text-lg font-semibold">تفاصيل الطلب</h2>
           <p className="mt-1 text-xs text-mocha">
-            الأسعار والأسماء محفوظة كما كانت وقت الطلب.
+            المنتجات والأسعار كما كانت عند إتمام الطلب.
           </p>
           <ul className="mt-4 space-y-4">
             {order.items.length === 0 ? (

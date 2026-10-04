@@ -78,8 +78,7 @@ export function AdminLoginPage() {
 
           {!configured ? (
             <p className="rounded-md bg-mist px-4 py-3 text-sm leading-7 text-mocha">
-              أضيفي بيانات مشروع Supabase <strong>athar</strong> في ملف{' '}
-              <code className="text-brown">.env.local</code> ثم أعيدي تشغيل التطبيق.
+              المتجر غير جاهز لتسجيل الدخول حالياً. تواصلي مع الدعم الفني لإعداد لوحة التحكم.
             </p>
           ) : (
             <>

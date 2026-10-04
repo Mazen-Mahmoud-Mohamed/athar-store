@@ -10,12 +10,22 @@ export const ORDER_STATUSES: OrderStatus[] = [
 ]
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'قيد المراجعة',
+  pending: 'جديد',
   confirmed: 'تم التأكيد',
   preparing: 'جاري التجهيز',
   shipped: 'تم الشحن',
   delivered: 'تم التسليم',
   cancelled: 'ملغي',
+}
+
+/** Action-oriented labels for status transition buttons. */
+export const ORDER_STATUS_ACTION_LABELS: Record<OrderStatus, string> = {
+  pending: 'جديد',
+  confirmed: 'تأكيد الطلب',
+  preparing: 'بدء التجهيز',
+  shipped: 'تم الشحن',
+  delivered: 'تم التسليم',
+  cancelled: 'إلغاء الطلب',
 }
 
 const FLOW: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered']

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,8 +28,10 @@ const PAGE_SIZE = 20
 
 const summaryCards: Array<{ key: keyof AdminOrderCounts; label: string }> = [
   { key: 'total', label: 'إجمالي الطلبات' },
-  { key: 'pending', label: 'قيد المراجعة' },
+  { key: 'pending', label: 'جديد' },
+  { key: 'confirmed', label: 'تم التأكيد' },
   { key: 'preparing', label: 'جاري التجهيز' },
+  { key: 'shipped', label: 'تم الشحن' },
   { key: 'delivered', label: 'تم التسليم' },
   { key: 'cancelled', label: 'ملغي' },
 ]
@@ -79,37 +83,48 @@ export function AdminOrdersPage() {
   }, [searchInput])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const emptyMessage =
+  const emptyTitle =
+    search || statusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات حتى الآن'
+  const emptyDescription =
     search || statusFilter !== 'all'
-      ? 'لا توجد نتائج مطابقة للبحث أو التصفية.'
-      : 'لا توجد طلبات حتى الآن.'
+      ? 'جرّبي تعديل البحث أو اختيار حالة أخرى.'
+      : 'ستظهر هنا طلبات العميلات فور وصولها.'
 
   return (
     <>
       <PageMeta title="إدارة الطلبات" noIndex />
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-3xl font-semibold">الطلبات</h1>
-          <p className="mt-2 text-sm text-mocha">متابعة طلبات عميلات أثر وإدارة حالاتها</p>
-        </div>
+        <AdminPageHeader
+          title="الطلبات"
+          description="تابعي طلبات العميلات وحدّثي حالتها بسهولة"
+        />
 
         {counts ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             {summaryCards.map((card) => (
-              <div
+              <button
                 key={card.key}
-                className="rounded-xl border border-taupe/40 bg-card px-4 py-3"
+                type="button"
+                onClick={() => {
+                  if (card.key === 'total') {
+                    setStatusFilter('all')
+                  } else {
+                    setStatusFilter(card.key)
+                  }
+                  setPage(1)
+                }}
+                className="rounded-xl border border-taupe/40 bg-card px-4 py-3 text-start transition hover:border-gold/40"
               >
                 <p className="text-xs text-mocha">{card.label}</p>
                 <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
                   {counts[card.key]}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
         ) : loading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 7 }).map((_, i) => (
               <Skeleton key={i} className="h-20 w-full rounded-xl" />
             ))}
           </div>
@@ -120,12 +135,12 @@ export function AdminOrdersPage() {
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="بحث بالاسم أو الهاتف أو رقم الطلب..."
+            placeholder="ابحث عن طلب..."
             className="sm:max-w-sm"
-            aria-label="بحث في الطلبات"
+            aria-label="ابحث عن طلب"
           />
           <p className="text-xs text-mocha" aria-live="polite">
-            {total} طلب
+            {loading ? 'جارٍ تحميل الطلبات...' : `${total} طلب`}
           </p>
         </div>
 
@@ -178,8 +193,7 @@ export function AdminOrdersPage() {
                   <th className="px-4 py-3 text-start font-medium">العناصر</th>
                   <th className="px-4 py-3 text-start font-medium">الإجمالي</th>
                   <th className="px-4 py-3 text-start font-medium">الحالة</th>
-                  <th className="px-4 py-3 text-start font-medium">تاريخ الإنشاء</th>
-                  <th className="px-4 py-3 text-start font-medium">آخر تحديث</th>
+                  <th className="px-4 py-3 text-start font-medium">تاريخ الطلب</th>
                   <th className="px-4 py-3 text-start font-medium">إجراء</th>
                 </tr>
               </thead>
@@ -187,15 +201,15 @@ export function AdminOrdersPage() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-t border-taupe/30">
-                      <td colSpan={9} className="px-4 py-3">
+                      <td colSpan={8} className="px-4 py-3">
                         <Skeleton className="h-8 w-full" />
                       </td>
                     </tr>
                   ))
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-mocha">
-                      {emptyMessage}
+                    <td colSpan={8} className="px-4 py-10">
+                      <AdminEmptyState title={emptyTitle} description={emptyDescription} />
                     </td>
                   </tr>
                 ) : (
@@ -220,12 +234,9 @@ export function AdminOrdersPage() {
                       <td className="px-4 py-3 text-xs text-mocha">
                         {formatAdminDateTime(order.created_at)}
                       </td>
-                      <td className="px-4 py-3 text-xs text-mocha">
-                        {formatAdminDateTime(order.updated_at)}
-                      </td>
                       <td className="px-4 py-3">
                         <Button asChild variant="ghost" size="sm">
-                          <Link to={`/admin/orders/${order.id}`}>التفاصيل</Link>
+                          <Link to={`/admin/orders/${order.id}`}>عرض الطلب</Link>
                         </Button>
                       </td>
                     </tr>
@@ -243,9 +254,7 @@ export function AdminOrdersPage() {
               <Skeleton key={i} className="h-36 w-full rounded-xl" />
             ))
           ) : orders.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-taupe/45 bg-card px-4 py-10 text-center text-sm text-mocha">
-              {emptyMessage}
-            </div>
+            <AdminEmptyState title={emptyTitle} description={emptyDescription} />
           ) : (
             orders.map((order) => (
               <article

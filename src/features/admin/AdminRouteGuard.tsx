@@ -17,12 +17,9 @@ export function AdminRouteGuard() {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-mist px-4">
         <div className="max-w-md rounded-xl border border-taupe/40 bg-card p-8 text-center shadow-soft">
-          <h1 className="font-display text-xl font-semibold text-brown">Supabase غير مهيأ</h1>
+          <h1 className="font-display text-xl font-semibold text-brown">لوحة التحكم غير جاهزة</h1>
           <p className="mt-3 text-sm leading-7 text-mocha">
-            أضيفي <code className="text-brown">VITE_SUPABASE_URL</code> و{' '}
-            <code className="text-brown">VITE_SUPABASE_ANON_KEY</code> لمشروع أثر (
-            <strong>athar</strong>) في ملف <code className="text-brown">.env</code> ثم أعيدي تشغيل
-            التطبيق.
+            تعذر الاتصال بخدمات المتجر حالياً. تواصلي مع الدعم الفني لإعداد لوحة التحكم.
           </p>
         </div>
       </div>

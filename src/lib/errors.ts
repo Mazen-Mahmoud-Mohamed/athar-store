@@ -56,12 +56,12 @@ export function toAppError(error: unknown, fallbackMessage = 'حدث خطأ غي
 
     if (code === '23505' || /duplicate key|unique constraint/i.test(message)) {
       if (/slug/i.test(message) || /_slug_/i.test(message)) {
-        return new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.', {
+        return new AppError('validation', 'هذا الاسم مستخدم بالفعل. جرّبي اسماً مختلفاً.', {
           status,
           cause: error,
         })
       }
-      return new AppError('validation', 'قيمة مكررة — تحققي من البيانات المدخلة.', {
+      return new AppError('validation', 'هذه البيانات مستخدمة بالفعل. تحققي من الاسم.', {
         status,
         cause: error,
       })
