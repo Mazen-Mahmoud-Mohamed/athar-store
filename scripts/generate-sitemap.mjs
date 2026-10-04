@@ -74,6 +74,8 @@ export async function generateSitemapXml() {
   // Core public routes always present, even when Supabase env is unavailable.
   push(`${SITE}/`, { changefreq: 'daily', priority: '1.0' })
   push(`${SITE}/products`, { changefreq: 'daily', priority: '0.9' })
+  push(`${SITE}/return-policy`, { changefreq: 'yearly', priority: '0.4' })
+  push(`${SITE}/terms`, { changefreq: 'yearly', priority: '0.4' })
 
   for (const category of categories) {
     const slug = typeof category?.slug === 'string' ? category.slug.trim() : ''

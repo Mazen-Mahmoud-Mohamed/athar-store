@@ -13,6 +13,8 @@ import { CategoryPage } from '@/pages/CategoryPage'
 import { CartPage } from '@/pages/CartPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage'
+import { ReturnPolicyPage } from '@/pages/ReturnPolicyPage'
+import { TermsPage } from '@/pages/TermsPage'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
 
 const AdminDashboardPage = lazy(() =>
@@ -58,6 +60,8 @@ export default function App() {
               <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-success" element={<OrderSuccessPage />} />
+              <Route path="return-policy" element={<ReturnPolicyPage />} />
+              <Route path="terms" element={<TermsPage />} />
             </Route>
 
             <Route path="admin/login" element={<AdminLoginPage />} />

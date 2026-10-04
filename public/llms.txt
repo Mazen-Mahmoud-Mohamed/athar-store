@@ -19,6 +19,8 @@
 - All products: https://athar.qd.je/products
 - Categories: linked from the homepage and product browsing
 - Product details: https://athar.qd.je/products/{product-slug}
+- Return & exchange policy: https://athar.qd.je/return-policy
+- Terms & conditions: https://athar.qd.je/terms
 
 ## Discovery
 - Browse all products at /products

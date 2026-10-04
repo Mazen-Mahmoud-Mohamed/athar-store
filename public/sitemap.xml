@@ -11,6 +11,16 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://athar.qd.je/return-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://athar.qd.je/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://athar.qd.je/category/handbags</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -26,12 +36,17 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://athar.qd.je/products/demo-cf1cd4b199d1</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://athar.qd.je/products/demo-5a6d8c125b83</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://athar.qd.je/products/demo-7ee1ea30be4c</loc>
+    <loc>https://athar.qd.je/products/demo-60008c02820b</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -41,7 +56,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://athar.qd.je/products/demo-60008c02820b</loc>
+    <loc>https://athar.qd.je/products/demo-7ee1ea30be4c</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -82,11 +97,6 @@
   </url>
   <url>
     <loc>https://athar.qd.je/products/demo-b30194d2999a</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://athar.qd.je/products/demo-cf1cd4b199d1</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
