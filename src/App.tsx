@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/features/admin/AuthProvider'
 import { AdminRouteGuard } from '@/features/admin/AdminRouteGuard'
@@ -15,6 +15,7 @@ import { CheckoutPage } from '@/pages/CheckoutPage'
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage'
 import { ReturnPolicyPage } from '@/pages/ReturnPolicyPage'
 import { TermsPage } from '@/pages/TermsPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
 
 const AdminDashboardPage = lazy(() =>
@@ -62,6 +63,8 @@ export default function App() {
               <Route path="order-success" element={<OrderSuccessPage />} />
               <Route path="return-policy" element={<ReturnPolicyPage />} />
               <Route path="terms" element={<TermsPage />} />
+              {/* Unknown storefront paths — SPA catch-all (GitHub Pages 404.html still boots the app). */}
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
 
             <Route path="admin/login" element={<AdminLoginPage />} />
@@ -126,8 +129,6 @@ export default function App() {
                 />
               </Route>
             </Route>
-
-            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster
             position="top-center"
