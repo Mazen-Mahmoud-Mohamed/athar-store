@@ -30,11 +30,11 @@ export function ContactLinks({
           title={link.label}
           className={cn(
             'inline-flex items-center justify-center rounded-md border border-current/15 transition-colors',
-            compact ? 'size-10' : 'size-11',
+            compact ? 'size-10' : 'size-12',
             iconClassName,
           )}
         >
-          <SocialIcon name={link.key} />
+          <SocialIcon name={link.key} className={compact ? undefined : 'size-[1.15rem]'} />
         </a>
       ))}
       {showPhone ? (
@@ -44,11 +44,11 @@ export function ContactLinks({
           title={atharContact.phoneDisplay}
           className={cn(
             'inline-flex items-center justify-center rounded-md border border-current/15 transition-colors',
-            compact ? 'size-10' : 'size-11',
+            compact ? 'size-10' : 'size-12',
             iconClassName,
           )}
         >
-          <Phone className="size-4" aria-hidden="true" />
+          <Phone className={compact ? 'size-4' : 'size-[1.15rem]'} aria-hidden="true" />
         </a>
       ) : null}
     </div>

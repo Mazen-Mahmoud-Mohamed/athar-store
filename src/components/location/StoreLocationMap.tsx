@@ -5,11 +5,11 @@ type StoreLocationMapProps = {
   className?: string
 }
 
-/** Compact Google Maps preview for the Footer contact column only. */
+/** Google Maps preview for the Footer map column. */
 export function StoreLocationMap({ className }: StoreLocationMapProps) {
   return (
-    <div className={cn('space-y-1', className)}>
-      <div className="relative h-[210px] w-full overflow-hidden rounded-md border border-cream/15 bg-espresso/50 sm:h-[170px] sm:max-w-[340px]">
+    <div className={cn('space-y-2', className)}>
+      <div className="relative h-[180px] w-full overflow-hidden rounded-lg border border-cream/15 bg-espresso/50 sm:h-[190px] lg:h-[200px]">
         <iframe
           title="موقع أثر على خرائط جوجل"
           src={atharContact.mapsEmbedSrc}
@@ -23,7 +23,7 @@ export function StoreLocationMap({ className }: StoreLocationMapProps) {
         href={atharContact.mapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[11px] text-gold-soft transition-colors hover:text-cream"
+        className="inline-block text-sm text-gold-soft transition-colors hover:text-cream"
       >
         عرض الموقع على الخريطة
       </a>
