@@ -24,6 +24,11 @@ import {
 import { AppError, getErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/utils'
 import { createOrder, rememberGuestOrderConfirmation } from '@/services/orderService'
+import {
+  rememberPendingXPayPayment,
+  startXPayCheckout,
+  type PaymentMethodChoice,
+} from '@/services/paymentService'
 import type { CartItem } from '@/types'
 import { toast } from 'sonner'
 
@@ -57,7 +62,9 @@ export function CheckoutPage() {
   const [checkingCart, setCheckingCart] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodChoice>('cod')
   const submitLock = useRef(false)
+  const xpayIdempotencyKey = useRef(crypto.randomUUID())
 
   const nameRef = useRef<HTMLInputElement>(null)
   const phoneRef = useRef<HTMLInputElement>(null)
@@ -259,6 +266,33 @@ export function CheckoutPage() {
           'تم تحديث السلة. راجعي المنتجات ثم أكّدي الطلب مرة أخرى.'
         setSubmitError(message)
         toast.error(message)
+        submitLock.current = false
+        setSubmitting(false)
+        return
+      }
+
+      if (paymentMethod === 'xpay') {
+        const started = await startXPayCheckout(
+          validated.payload,
+          cartCheck.syncedItems,
+          xpayIdempotencyKey.current,
+        )
+        rememberGuestOrderConfirmation(started.confirmation)
+        rememberPendingXPayPayment({
+          paymentId: started.paymentId,
+          guestToken: started.guestToken,
+          orderId: started.orderId,
+          sessionId: started.sessionId,
+          confirmation: started.confirmation,
+        })
+        if (buyNowMode) {
+          clearBuyNowIntent()
+          setBuyNowItems([])
+        } else {
+          clearCart()
+        }
+        toast.message('جارٍ تحويلك لإتمام الدفع الآمن…')
+        window.location.assign(started.checkoutUrl)
         return
       }
 
@@ -309,10 +343,10 @@ export function CheckoutPage() {
       />
       <div className="container-athar py-10 sm:py-14" aria-busy={checkingCart || submitting}>
         <div className="mb-8">
-          <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">الدفع عند الاستلام</p>
+          <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">إتمام الشراء</p>
           <h1 className="font-display text-3xl font-semibold">إتمام الطلب</h1>
           <p className="mt-2 text-sm text-mocha">
-            أدخلي بياناتك وسنؤكد الطلب عبر الهاتف أو واتساب. لا يتم تحصيل أي دفعة إلكترونية الآن.
+            أدخلي بياناتك واختاري طريقة الدفع المناسبة لكِ.
           </p>
           {checkingCart ? (
             <p className="mt-2 text-xs text-mocha" role="status" aria-live="polite">
@@ -469,6 +503,59 @@ export function CheckoutPage() {
               ) : null}
             </div>
 
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-brown">طريقة الدفع</legend>
+              <div className="grid gap-3" role="radiogroup" aria-label="طريقة الدفع">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                    paymentMethod === 'cod'
+                      ? 'border-gold bg-gold/10'
+                      : 'border-taupe/35 bg-card hover:border-taupe/55'
+                  } ${submitting ? 'pointer-events-none opacity-70' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="cod"
+                    checked={paymentMethod === 'cod'}
+                    onChange={() => setPaymentMethod('cod')}
+                    disabled={submitting}
+                    className="mt-1 size-4 accent-[var(--color-gold-deep,#8a6a2f)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-brown">الدفع عند الاستلام</span>
+                    <span className="mt-1 block text-xs leading-6 text-mocha">
+                      نؤكد الطلب عبر الهاتف أو واتساب. لا يتم تحصيل أي دفعة إلكترونية الآن.
+                    </span>
+                  </span>
+                </label>
+
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                    paymentMethod === 'xpay'
+                      ? 'border-gold bg-gold/10'
+                      : 'border-taupe/35 bg-card hover:border-taupe/55'
+                  } ${submitting ? 'pointer-events-none opacity-70' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="xpay"
+                    checked={paymentMethod === 'xpay'}
+                    onChange={() => setPaymentMethod('xpay')}
+                    disabled={submitting}
+                    className="mt-1 size-4 accent-[var(--color-gold-deep,#8a6a2f)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-brown">الدفع أونلاين</span>
+                    <span className="mt-1 block text-xs leading-6 text-mocha">
+                      الدفع الآمن عبر XPay (وضع الاختبار). سيتم تحويلك لصفحة دفع خارجية.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
             <div className="space-y-2">
               <Label htmlFor="notes">ملاحظات (اختياري)</Label>
               <Textarea
@@ -546,7 +633,10 @@ export function CheckoutPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <p className="text-xs leading-6 text-mocha">
-                السعر النهائي يُؤكد من الخادم عند إرسال الطلب. الدفع عند الاستلام.
+                السعر النهائي يُؤكد من الخادم عند إرسال الطلب.
+                {paymentMethod === 'cod'
+                  ? ' الدفع عند الاستلام.'
+                  : ' الدفع الإلكتروني عبر XPay بعد التأكيد.'}
               </p>
             </div>
 
@@ -569,12 +659,20 @@ export function CheckoutPage() {
               aria-busy={submitting}
               aria-describedby={submitError ? 'checkout-submit-error' : undefined}
             >
-              {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
+              {submitting
+                ? paymentMethod === 'xpay'
+                  ? 'جارٍ تجهيز الدفع...'
+                  : 'جاري تأكيد الطلب...'
+                : paymentMethod === 'xpay'
+                  ? 'المتابعة للدفع الآمن'
+                  : 'تأكيد الطلب'}
             </Button>
 
             {submitting ? (
               <p className="mt-2 text-center text-xs text-mocha" role="status" aria-live="polite">
-                يرجى الانتظار — لا تغلقي الصفحة أثناء إرسال الطلب.
+                {paymentMethod === 'xpay'
+                  ? 'يرجى الانتظار — سيتم تحويلك لصفحة الدفع. لا تغلقي الصفحة.'
+                  : 'يرجى الانتظار — لا تغلقي الصفحة أثناء إرسال الطلب.'}
               </p>
             ) : null}
 

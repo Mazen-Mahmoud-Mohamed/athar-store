@@ -37,6 +37,16 @@ export type GuestOrderConfirmation = {
     quantity: number
     subtotal: number
   }>
+  paymentMethod?: 'cod' | 'xpay'
+  paymentStatus?:
+    | 'pending'
+    | 'requires_action'
+    | 'successful'
+    | 'failed'
+    | 'cancelled'
+    | 'refunded'
+    | 'partially_refunded'
+    | 'expired'
 }
 
 const LAST_ORDER_STORAGE_KEY = 'athar-last-order-confirmation'
@@ -53,6 +63,8 @@ export function rememberGuestOrderConfirmation(confirmation: GuestOrderConfirmat
         subtotal: confirmation.subtotal,
         total: confirmation.total,
         items: confirmation.items,
+        paymentMethod: confirmation.paymentMethod ?? 'cod',
+        paymentStatus: confirmation.paymentStatus ?? 'pending',
         // Keep id only for same-tab refresh continuity; never shown in UI.
         id: confirmation.id,
       } satisfies GuestOrderConfirmation),
@@ -82,6 +94,11 @@ export function readRememberedGuestOrderConfirmation(): GuestOrderConfirmation |
       customerName: typeof parsed.customerName === 'string' ? parsed.customerName : '',
       subtotal: typeof parsed.subtotal === 'number' ? parsed.subtotal : parsed.total,
       total: parsed.total,
+      paymentMethod: parsed.paymentMethod === 'xpay' ? 'xpay' : 'cod',
+      paymentStatus:
+        typeof parsed.paymentStatus === 'string'
+          ? (parsed.paymentStatus as GuestOrderConfirmation['paymentStatus'])
+          : 'pending',
       items: Array.isArray(parsed.items)
         ? parsed.items.map((item) => ({
             productName: String(item?.productName ?? 'منتج'),
@@ -249,6 +266,11 @@ function parseConfirmation(
     subtotal,
     total,
     items,
+    paymentMethod: row.payment_method === 'xpay' ? 'xpay' : 'cod',
+    paymentStatus:
+      typeof row.payment_status === 'string'
+        ? (row.payment_status as GuestOrderConfirmation['paymentStatus'])
+        : 'pending',
   }
 }
 

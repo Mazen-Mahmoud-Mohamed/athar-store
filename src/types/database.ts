@@ -16,6 +16,18 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled'
 
+export type PaymentMethod = 'cod' | 'xpay'
+
+export type PaymentStatus =
+  | 'pending'
+  | 'requires_action'
+  | 'successful'
+  | 'failed'
+  | 'cancelled'
+  | 'refunded'
+  | 'partially_refunded'
+  | 'expired'
+
 export type Profile = {
   id: string
   full_name: string | null
@@ -63,9 +75,30 @@ export type Order = {
   status: OrderStatus
   subtotal: number
   total: number
+  payment_method?: PaymentMethod
+  payment_status?: PaymentStatus
   created_at: string
   updated_at: string
   items?: OrderItem[]
+}
+
+export type Payment = {
+  id: string
+  order_id: string
+  provider: string
+  provider_session_id: string | null
+  provider_payment_intent_id: string | null
+  amount: number
+  currency: string
+  status: PaymentStatus
+  provider_status: string | null
+  provider_payment_status: string | null
+  guest_token: string
+  idempotency_key: string | null
+  stock_released: boolean
+  metadata: Json
+  created_at: string
+  updated_at: string
 }
 
 export type OrderItem = {
@@ -180,6 +213,8 @@ export type Database = {
           status?: OrderStatus
           subtotal: number
           total: number
+          payment_method?: PaymentMethod
+          payment_status?: PaymentStatus
           created_at?: string
           updated_at?: string
         }
@@ -192,10 +227,60 @@ export type Database = {
           status?: OrderStatus
           subtotal?: number
           total?: number
+          payment_method?: PaymentMethod
+          payment_status?: PaymentStatus
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: Payment
+        Insert: {
+          id?: string
+          order_id: string
+          provider?: string
+          provider_session_id?: string | null
+          provider_payment_intent_id?: string | null
+          amount: number
+          currency?: string
+          status?: PaymentStatus
+          provider_status?: string | null
+          provider_payment_status?: string | null
+          guest_token?: string
+          idempotency_key?: string | null
+          stock_released?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          provider?: string
+          provider_session_id?: string | null
+          provider_payment_intent_id?: string | null
+          amount?: number
+          currency?: string
+          status?: PaymentStatus
+          provider_status?: string | null
+          provider_payment_status?: string | null
+          guest_token?: string
+          idempotency_key?: string | null
+          stock_released?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payments_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: false
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+        ]
       }
       order_items: {
         Row: OrderItem
@@ -248,6 +333,33 @@ export type Database = {
           p_address: string
           p_notes?: string | null
           p_items: Json
+          p_payment_method?: PaymentMethod
+        }
+        Returns: Json
+      }
+      mark_xpay_order_paid: {
+        Args: {
+          p_payment_id: string
+          p_provider_session_id?: string | null
+          p_provider_payment_intent_id?: string | null
+          p_provider_status?: string | null
+          p_provider_payment_status?: string | null
+        }
+        Returns: Json
+      }
+      cancel_unpaid_xpay_order: {
+        Args: {
+          p_payment_id: string
+          p_payment_status: PaymentStatus
+          p_provider_session_id?: string | null
+          p_provider_status?: string | null
+          p_provider_payment_status?: string | null
+        }
+        Returns: Json
+      }
+      cancel_xpay_order_without_payment: {
+        Args: {
+          p_order_id: string
         }
         Returns: Json
       }
@@ -269,6 +381,8 @@ export type Database = {
     Enums: {
       order_status: OrderStatus
       user_role: UserRole
+      payment_method: PaymentMethod
+      payment_status: PaymentStatus
     }
     CompositeTypes: Record<string, never>
   }

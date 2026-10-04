@@ -9,6 +9,7 @@
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:xpay": "node scripts/_qa-xpay-signature.mjs",
     "seed:demo-catalog": "node scripts/seed-demo-catalog.mjs"
   },
   "dependencies": {

@@ -411,3 +411,14 @@ enabled = true
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# XPay Edge Functions — public/guest callable; auth is enforced inside each function.
+# Webhook must not require a Supabase JWT (XPay signs with whsec_* instead).
+[functions.xpay-create-payment]
+verify_jwt = false
+
+[functions.xpay-payment-status]
+verify_jwt = false
+
+[functions.xpay-webhook]
+verify_jwt = false
