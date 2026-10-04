@@ -38,7 +38,9 @@ export function CategoryCard({ category, productCount, className }: CategoryCard
         {showImage ? (
           <img
             src={category.image_url!}
-            alt={category.name}
+            alt={`تصنيف ${category.name}`}
+            width={640}
+            height={800}
             loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}

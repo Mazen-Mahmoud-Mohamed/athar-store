@@ -5,6 +5,7 @@ import type { Product } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/features/cart/cart-context'
+import { productPath } from '@/config/site'
 import { calcDiscountPercent, cn, formatPrice } from '@/lib/utils'
 
 type ProductCardProps = {
@@ -27,11 +28,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
       )}
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-mist">
-        <Link to={`/products/${product.id}`} className="block h-full w-full" aria-label={product.name}>
+        <Link to={productPath(product)} className="block h-full w-full" aria-label={product.name}>
           {showImage ? (
             <img
               src={product.image_url!}
               alt={product.name}
+              width={640}
+              height={800}
               loading="lazy"
               decoding="async"
               onError={() => setImgFailed(true)}
@@ -66,7 +69,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           <p className="text-[11px] tracking-wide text-mocha">{product.category.name}</p>
         ) : null}
 
-        <Link to={`/products/${product.id}`} className="block">
+        <Link to={productPath(product)} className="block">
           <h3 className="line-clamp-2 font-display text-[14px] font-semibold leading-7 text-brown transition-colors group-hover:text-espresso sm:text-[15px]">
             {product.name}
           </h3>

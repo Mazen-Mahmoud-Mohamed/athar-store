@@ -83,7 +83,7 @@ export function AdminOrdersPage() {
 
   return (
     <>
-      <PageMeta title="إدارة الطلبات" noIndex />
+      <PageMeta title="إدارة الطلبات" path="/admin/orders" noIndex />
       <div className="space-y-6">
         <AdminPageHeader
           title="الطلبات"

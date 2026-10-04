@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Skeleton } from '@/components/ui/skeleton'
+import { truncateMeta } from '@/config/site'
+import { categoryBreadcrumbs, itemListSchema } from '@/lib/seoSchema'
 import {
   CatalogControls,
   type CatalogControlValues,
@@ -109,18 +112,52 @@ export function CategoryPage() {
     setSearchParams({}, { replace: true })
   }
 
+  const categoryDescription = category
+    ? truncateMeta(
+        category.description?.trim() ||
+          `تسوقي منتجات ${category.name} من أثر — حقائب وشنط وإكسسوارات أنيقة.`,
+      )
+    : 'تصنيفات أثر للحقائب والشنط والإكسسوارات.'
+
   return (
     <>
       <PageMeta
-        title={loading ? 'جارٍ التحميل' : (category?.name ?? 'التصنيف')}
-        description={
-          category?.description ??
-          (category ? `تسوقي منتجات ${category.name} من أثر.` : 'تصنيفات أثر للحقائب والإكسسوارات.')
-        }
+        title={loading ? 'التصنيف' : (category?.name ?? 'التصنيف')}
+        description={categoryDescription}
         path={slug ? `/category/${slug}` : '/products'}
         image={category?.image_url}
+        noIndex={notFound}
       />
+      {category && !notFound ? (
+        <JsonLd id="category-breadcrumb" data={categoryBreadcrumbs(category)} />
+      ) : null}
+      {category && !loading && !error && !notFound && filtered.length > 0 ? (
+        <JsonLd
+          id="category-itemlist"
+          data={itemListSchema(category.name, filtered, `/category/${category.slug}`)}
+        />
+      ) : null}
       <div className="container-athar py-10 sm:py-14">
+        <nav aria-label="مسار التنقل" className="mb-6 text-sm text-mocha">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li>
+              <Link to="/" className="hover:text-brown">
+                الرئيسية
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
+              <Link to="/products" className="hover:text-brown">
+                المنتجات
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="text-brown" aria-current="page">
+              {category?.name ?? 'التصنيف'}
+            </li>
+          </ol>
+        </nav>
+
         <div className="mb-8 max-w-2xl">
           <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">التصنيف</p>
           {loading ? (

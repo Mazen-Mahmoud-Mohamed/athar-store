@@ -26,6 +26,7 @@ export function BrandLogo({
         height={160}
         decoding={priority ? 'sync' : 'async'}
         loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
         className={cn('h-auto w-full object-contain', imgClassName)}
       />
     </span>

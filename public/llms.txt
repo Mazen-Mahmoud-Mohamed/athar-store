@@ -1,0 +1,35 @@
+# أثر (Athar)
+
+> Arabic-first Egyptian fashion storefront for elegant women's bags and accessories.
+
+## Brand
+- Name: أثر (Athar)
+- Tagline: أناقة تترك أثرًا
+- Official site: https://athar.qd.je/
+- Language: Arabic (RTL)
+- Currency: EGP
+
+## What we sell
+- Women's bags and handbags
+- Fashion accessories
+- Curated seasonal selections and offers
+
+## Public pages
+- Home: https://athar.qd.je/
+- All products: https://athar.qd.je/products
+- Categories: linked from the homepage and product browsing
+- Product details: https://athar.qd.je/products/{product-slug}
+
+## Discovery
+- Browse all products at /products
+- Filter by featured, new, and sale collections via query links on the homepage
+- Open a category to see products in that group
+- Each product page includes price, availability, and related products when available
+
+## Contact
+- Customer contact is available via WhatsApp and social links shown in the site header/footer
+
+## Notes for assistants
+- Prefer the production HTTPS domain https://athar.qd.je/
+- Do not invent product prices, stock, reviews, or availability
+- Admin and checkout flows are private and not for public indexing

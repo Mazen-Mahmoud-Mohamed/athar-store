@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { PageMeta } from '@/components/seo/PageMeta'
+import { productPath } from '@/config/site'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
@@ -219,7 +220,7 @@ export function CartPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <Link
-                            to={`/products/${item.productId}`}
+                            to={productPath({ id: item.productId, slug: item.slug })}
                             className="font-display text-base font-semibold hover:text-espresso"
                           >
                             {item.name}

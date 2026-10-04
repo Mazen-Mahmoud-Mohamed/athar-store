@@ -40,6 +40,15 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/404.html
+          test -f dist/robots.txt
+          test -f dist/sitemap.xml
+          test -f dist/llms.txt
+          grep -q 'Sitemap: https://athar.qd.je/sitemap.xml' dist/robots.txt
+          grep -q 'https://athar.qd.je/' dist/sitemap.xml
+          if grep -q 'athar-store/' dist/sitemap.xml dist/robots.txt dist/llms.txt; then
+            echo 'SEO files must not reference /athar-store/ paths' >&2
+            exit 1
+          fi
           # Custom domain serves from site root — assets must be /assets/... not /athar-store/assets/...
           grep -q '/assets/' dist/index.html
           if grep -q '/athar-store/assets/' dist/index.html; then

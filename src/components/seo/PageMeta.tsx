@@ -1,12 +1,23 @@
 import { useEffect } from 'react'
-import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL } from '@/config/site'
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  SITE_NAME,
+  SITE_NAME_AR,
+  absoluteUrl,
+} from '@/config/site'
 
 type PageMetaProps = {
+  /** Page title segment. With absoluteTitle=false becomes "{title} | أثر". */
   title?: string
   description?: string
+  /** Canonical path only (no query string). Defaults to "/". */
   path?: string
   image?: string | null
   noIndex?: boolean
+  /** When true, `title` is used as the full document title. */
+  absoluteTitle?: boolean
+  ogType?: 'website' | 'product'
 }
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
@@ -29,32 +40,51 @@ function upsertLink(rel: string, href: string) {
   el.href = href
 }
 
+function cleanPath(path: string) {
+  const withSlash = path.startsWith('/') ? path : `/${path}`
+  // Canonicals never include query/hash — filters/search must not create duplicates.
+  return withSlash.split('?')[0]?.split('#')[0] || '/'
+}
+
 export function PageMeta({
   title,
   description = DEFAULT_DESCRIPTION,
   path = '/',
   image,
   noIndex = false,
+  absoluteTitle = false,
+  ogType = 'website',
 }: PageMetaProps) {
   useEffect(() => {
-    const fullTitle = title ? `${title} | أثر` : SITE_NAME
-    const canonical = new URL(path.startsWith('/') ? path : `/${path}`, SITE_URL).toString()
+    const fullTitle = absoluteTitle
+      ? title || SITE_NAME
+      : title
+        ? `${title} | أثر`
+        : SITE_NAME
+    const canonicalPath = cleanPath(path)
+    const canonical = absoluteUrl(canonicalPath)
     const ogImage = image?.startsWith('http')
       ? image
-      : new URL(image || '/athar-logo.png', SITE_URL).toString()
+      : image
+        ? absoluteUrl(image)
+        : DEFAULT_OG_IMAGE
 
     document.title = fullTitle
     upsertMeta('name', 'description', description)
+    upsertMeta('property', 'og:site_name', SITE_NAME_AR)
     upsertMeta('property', 'og:title', fullTitle)
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:url', canonical)
     upsertMeta('property', 'og:image', ogImage)
-    upsertMeta('property', 'og:type', 'website')
+    upsertMeta('property', 'og:type', ogType)
     upsertMeta('property', 'og:locale', 'ar_EG')
     upsertMeta('name', 'twitter:card', 'summary_large_image')
+    upsertMeta('name', 'twitter:title', fullTitle)
+    upsertMeta('name', 'twitter:description', description)
+    upsertMeta('name', 'twitter:image', ogImage)
     upsertMeta('name', 'robots', noIndex ? 'noindex,nofollow' : 'index,follow')
     upsertLink('canonical', canonical)
-  }, [title, description, path, image, noIndex])
+  }, [title, description, path, image, noIndex, absoluteTitle, ogType])
 
   return null
 }

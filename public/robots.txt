@@ -1,0 +1,12 @@
+# أثر — Athar storefront
+User-agent: *
+Allow: /
+
+# Private / transactional / admin
+Disallow: /admin
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /order-success
+
+Sitemap: https://athar.qd.je/sitemap.xml

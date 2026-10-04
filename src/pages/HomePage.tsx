@@ -4,8 +4,11 @@ import { ArrowLeft } from 'lucide-react'
 import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
 import { WhatsAppCta } from '@/components/ContactLinks'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
+import { HOME_DESCRIPTION, HOME_TITLE } from '@/config/site'
+import { organizationSchema, websiteSchema } from '@/lib/seoSchema'
 import { CategoryCard } from '@/features/categories/CategoryCard'
 import {
   CatalogError,
@@ -83,11 +86,14 @@ export function HomePage() {
   return (
     <>
       <PageMeta
-        title="الرئيسية"
-        description="أثر — علامة مصرية راقية للحقائب والإكسسوارات. أناقة تترك أثراً."
+        title={HOME_TITLE}
+        description={HOME_DESCRIPTION}
         path="/"
         image={heroImage}
+        absoluteTitle
       />
+      <JsonLd id="organization" data={organizationSchema()} />
+      <JsonLd id="website" data={websiteSchema()} />
 
       <section className="relative overflow-hidden border-b border-taupe/20">
         <div className="absolute inset-0 surface-warm" />
@@ -101,7 +107,7 @@ export function HomePage() {
                 imgClassName="h-28 w-28 sm:h-32 sm:w-32 lg:h-40 lg:w-40"
               />
               <div className="space-y-4">
-                <h1 className="font-display text-4xl font-semibold leading-[1.25] text-brown sm:text-5xl lg:text-[3.25rem]">
+                <h1 className="font-calligraphy text-4xl font-normal leading-[1.5] text-brown sm:text-5xl sm:leading-[1.45] lg:text-[3.4rem] lg:leading-[1.4]">
                   أناقة تترك أثرًا
                 </h1>
                 <p className="max-w-md text-base leading-8 text-mocha sm:text-lg">
@@ -127,7 +133,11 @@ export function HomePage() {
               {heroImage ? (
                 <img
                   src={heroImage}
-                  alt={heroProduct?.name ?? 'أثر'}
+                  alt={heroProduct ? heroProduct.name : 'أثر — حقائب وشنط نسائية'}
+                  width={960}
+                  height={1200}
+                  fetchPriority="high"
+                  decoding="async"
                   className="h-full w-full object-cover"
                   onError={() => setHeroImgFailed(true)}
                 />
@@ -157,7 +167,7 @@ export function HomePage() {
             <div className="mb-10 flex items-end justify-between gap-4">
               <div>
                 <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">مختارات أثر</p>
-                <h2 className="font-display text-2xl font-semibold sm:text-3xl">منتجات مميزة</h2>
+                <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">منتجات مميزة</h2>
               </div>
               <Button asChild variant="outline" className="hidden sm:inline-flex">
                 <Link to="/products?featured=1">كل المميز</Link>
@@ -180,7 +190,7 @@ export function HomePage() {
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">التصنيفات</p>
-            <h2 className="font-display text-2xl font-semibold sm:text-3xl">تسوقي حسب المجموعة</h2>
+            <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">تسوقي حسب المجموعة</h2>
           </div>
           <Button asChild variant="link" className="hidden sm:inline-flex">
             <Link to="/products">عرض الكل</Link>
@@ -211,7 +221,7 @@ export function HomePage() {
             <div className="mb-10 flex items-end justify-between gap-4">
               <div>
                 <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">وصل حديثاً</p>
-                <h2 className="font-display text-2xl font-semibold sm:text-3xl">وصل حديثًا</h2>
+                <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">وصل حديثًا</h2>
               </div>
               <Button asChild variant="outline" className="hidden sm:inline-flex">
                 <Link to="/products?new=1">كل الجديد</Link>
@@ -235,7 +245,7 @@ export function HomePage() {
           <div className="mb-10 flex items-end justify-between gap-4">
             <div>
               <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">عروض خاصة</p>
-              <h2 className="font-display text-2xl font-semibold sm:text-3xl">وفّري بذوق راقٍ</h2>
+              <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">وفّري بذوق راقٍ</h2>
             </div>
             <Button asChild variant="outline" className="hidden sm:inline-flex">
               <Link to="/products?sale=1">كل العروض</Link>
@@ -253,7 +263,7 @@ export function HomePage() {
         <div className="container-athar">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">لماذا أثر؟</p>
-            <h2 className="font-display text-2xl font-semibold sm:text-3xl">قيم تُرى في كل تفصيلة</h2>
+            <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">قيم تُرى في كل تفصيلة</h2>
           </div>
           <div className="grid gap-8 sm:grid-cols-3">
             {[
@@ -282,7 +292,7 @@ export function HomePage() {
       <section className="container-athar py-16 sm:py-20">
         <div className="mx-auto max-w-2xl rounded-2xl bg-espresso px-6 py-12 text-center text-cream sm:px-10">
           <p className="mb-2 text-xs tracking-[0.28em] text-gold-soft">تواصلي معنا</p>
-          <h2 className="font-display text-2xl font-semibold sm:text-3xl">استفسارك مهم لنا</h2>
+          <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">استفسارك مهم لنا</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-cream/70">
             راسلينا عبر واتساب لأي استفسار عن المقاسات، التوفر، أو اختيار القطعة المناسبة.
           </p>

@@ -1,17 +1,23 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Minus, Plus, ShoppingBag } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { productPath, truncateMeta } from '@/config/site'
 import { CatalogEmpty, CatalogError } from '@/features/catalog/CatalogStates'
 import { ProductCard } from '@/features/products/ProductCard'
 import { useCart } from '@/features/cart/cart-context'
 import { getErrorMessage } from '@/lib/errors'
+import { productBreadcrumbs, productSchema } from '@/lib/seoSchema'
 import { calcDiscountPercent, formatPrice } from '@/lib/utils'
-import { getProductsByCategory, getProductById } from '@/services/productService'
+import { getProductById, getProductBySlug, getProductsByCategory } from '@/services/productService'
 import type { Product } from '@/types'
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function ProductDetailsSkeleton() {
   return (
@@ -31,8 +37,16 @@ function ProductDetailsSkeleton() {
   )
 }
 
+async function resolveProduct(param: string): Promise<Product | null> {
+  const bySlug = await getProductBySlug(param)
+  if (bySlug) return bySlug
+  if (UUID_RE.test(param)) return getProductById(param)
+  return null
+}
+
 export function ProductDetailsPage() {
-  const { id } = useParams()
+  const { id: routeParam } = useParams()
+  const navigate = useNavigate()
   const { addItem } = useCart()
   const [qty, setQty] = useState(1)
   const [product, setProduct] = useState<Product | null>(null)
@@ -47,13 +61,13 @@ export function ProductDetailsPage() {
   useEffect(() => {
     let active = true
     async function load() {
-      if (!id) return
+      if (!routeParam) return
       setLoading(true)
       setNotFound(false)
       setQty(1)
       setImgFailed(false)
       try {
-        const found = await getProductById(id)
+        const found = await resolveProduct(routeParam)
         if (!active) return
         setProduct(found)
         if (!found) {
@@ -62,6 +76,12 @@ export function ProductDetailsPage() {
           setError(null)
           return
         }
+
+        // Prefer clean slug URLs when an old UUID link is opened.
+        if (found.slug && routeParam !== found.slug) {
+          navigate(productPath(found), { replace: true })
+        }
+
         if (found.category_id) {
           const siblings = await getProductsByCategory(found.category_id)
           if (!active) return
@@ -81,12 +101,22 @@ export function ProductDetailsPage() {
     return () => {
       active = false
     }
-  }, [id, reloadKey])
+  }, [routeParam, reloadKey, navigate])
+
+  const schemaProduct = useMemo(
+    () => (product ? productSchema(product) : null),
+    [product],
+  )
+  const schemaBreadcrumbs = useMemo(
+    () => (product ? productBreadcrumbs(product) : null),
+    [product],
+  )
 
   if (loading) {
     return (
       <>
-        <PageMeta title="المنتج" path={id ? `/products/${id}` : '/products'} />
+        {/* Avoid indexing transient UUID/slug paths before the product resolves. */}
+        <PageMeta title="المنتج" path="/products" noIndex />
         <ProductDetailsSkeleton />
       </>
     )
@@ -95,6 +125,7 @@ export function ProductDetailsPage() {
   if (error) {
     return (
       <div className="container-athar py-16">
+        <PageMeta title="تعذر تحميل المنتج" path="/products" noIndex />
         <CatalogError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
       </div>
     )
@@ -103,6 +134,7 @@ export function ProductDetailsPage() {
   if (notFound || !product) {
     return (
       <div className="container-athar py-16">
+        <PageMeta title="المنتج غير متوفر" path="/products" noIndex />
         <CatalogEmpty
           title="المنتج غير متوفر"
           description="قد يكون المنتج غير نشط أو غير موجود حالياً."
@@ -118,6 +150,10 @@ export function ProductDetailsPage() {
   const outOfStock = current.stock_quantity <= 0
   const maxQty = Math.max(current.stock_quantity, 0)
   const showImage = Boolean(current.image_url) && !imgFailed
+  const description = truncateMeta(
+    current.description?.trim() ||
+      `${current.name} من أثر — حقائب وشنط وإكسسوارات أنيقة.`,
+  )
 
   function handleAdd() {
     if (outOfStock) return
@@ -141,10 +177,14 @@ export function ProductDetailsPage() {
     <>
       <PageMeta
         title={current.name}
-        description={current.description ?? `${current.name} من أثر — أناقة تترك أثراً.`}
-        path={`/products/${current.id}`}
+        description={description}
+        path={productPath(current)}
         image={current.image_url}
+        ogType="product"
       />
+      {schemaProduct ? <JsonLd id="product" data={schemaProduct} /> : null}
+      {schemaBreadcrumbs ? <JsonLd id="product-breadcrumb" data={schemaBreadcrumbs} /> : null}
+
       <div className="container-athar py-8 sm:py-12">
         <nav aria-label="مسار التنقل" className="mb-6 text-sm text-mocha">
           <ol className="flex flex-wrap items-center gap-1.5">
@@ -186,6 +226,10 @@ export function ProductDetailsPage() {
                 <img
                   src={current.image_url!}
                   alt={current.name}
+                  width={960}
+                  height={1200}
+                  fetchPriority="high"
+                  decoding="async"
                   className="h-full w-full object-cover"
                   onError={() => setImgFailed(true)}
                 />

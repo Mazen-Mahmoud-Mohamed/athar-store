@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { PageMeta } from '@/components/seo/PageMeta'
+import { PRODUCTS_DESCRIPTION, PRODUCTS_TITLE } from '@/config/site'
 import {
   CatalogControls,
   type CatalogControlValues,
 } from '@/features/catalog/CatalogControls'
+import { itemListSchema } from '@/lib/seoSchema'
 import {
   CatalogEmpty,
   CatalogError,
@@ -123,17 +126,47 @@ export function ProductsPage() {
     ? 'جرّبي كلمات أخرى أو امسحي البحث لعرض المجموعة الكاملة.'
     : 'عدّلي التصفية أو اعرضي كل المنتجات.'
 
+  const isDefaultListing =
+    !query && !controls.onlySale && !controls.onlyNew && !controls.onlyFeatured
+  const pageTitle = query
+    ? `نتائج البحث: ${query}`
+    : controls.onlySale
+      ? 'العروض'
+      : controls.onlyNew
+        ? 'وصل حديثًا'
+        : controls.onlyFeatured
+          ? 'المنتجات المميزة'
+          : PRODUCTS_TITLE
+
+  const pageDescription = query
+    ? `نتائج البحث في متجر أثر عن «${query}».`
+    : PRODUCTS_DESCRIPTION
+
   return (
     <>
       <PageMeta
-        title="المنتجات"
-        description="تسوّقي جميع منتجات أثر للحقائب والإكسسوارات — مجموعة راقية مختارة بعناية."
-        path={query ? `/products?q=${encodeURIComponent(query)}` : '/products'}
+        title={pageTitle}
+        description={pageDescription}
+        path="/products"
+        absoluteTitle={isDefaultListing}
+        noIndex={Boolean(query)}
       />
+      {!loading && !error && filtered.length > 0 && !query ? (
+        <JsonLd
+          id="products-itemlist"
+          data={itemListSchema(
+            isDefaultListing ? 'منتجات أثر' : pageTitle,
+            filtered,
+            '/products',
+          )}
+        />
+      ) : null}
       <div className="container-athar py-10 sm:py-14">
         <div className="mb-8 max-w-2xl">
           <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">المجموعة الكاملة</p>
-          <h1 className="font-display text-3xl font-semibold sm:text-4xl">المنتجات</h1>
+          <h1 className="font-display text-3xl font-semibold sm:text-4xl">
+            {query ? `نتائج البحث: ${query}` : 'المنتجات'}
+          </h1>
           <p className="mt-3 text-sm leading-7 text-mocha">
             اكتشفي قطع أثر المختارة بعناية — من الحقائب إلى الإكسسوارات.
           </p>

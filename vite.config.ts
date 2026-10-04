@@ -22,11 +22,32 @@ function githubPagesSpaFallback(): Plugin {
   }
 }
 
+/** Enrich sitemap.xml in dist from public catalog when Supabase env is available. */
+function generateSitemapPlugin(): Plugin {
+  return {
+    name: 'generate-sitemap',
+    async closeBundle() {
+      const { spawnSync } = await import('node:child_process')
+      const result = spawnSync(process.execPath, ['scripts/generate-sitemap.mjs'], {
+        cwd: rootDir,
+        env: process.env,
+        encoding: 'utf8',
+      })
+      if (result.stdout) process.stdout.write(result.stdout)
+      if (result.stderr) process.stderr.write(result.stderr)
+      // Non-fatal: keep the static public/sitemap.xml if enrichment fails.
+      if (result.status !== 0) {
+        console.warn('[generate-sitemap] skipped enrichment; static sitemap retained')
+      }
+    },
+  }
+}
+
 export default defineConfig({
   // Custom domain athar.qd.je serves the site at domain root (not /athar-store/).
   // GitHub Pages redirects github.io/athar-store/ → http://athar.qd.je/
   base: '/',
-  plugins: [react(), tailwindcss(), githubPagesSpaFallback()],
+  plugins: [react(), tailwindcss(), githubPagesSpaFallback(), generateSitemapPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
