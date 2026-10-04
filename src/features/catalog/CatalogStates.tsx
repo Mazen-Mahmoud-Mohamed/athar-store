@@ -92,43 +92,106 @@ export function ProductDetailsSkeleton() {
   )
 }
 
+type CatalogEmptyProps = {
+  title: string
+  description?: string
+  actionLabel?: string
+  actionTo?: string
+  onAction?: () => void
+  secondaryLabel?: string
+  secondaryTo?: string
+  /** Visual tone — unavailable is slightly stronger than a calm empty state. */
+  tone?: 'empty' | 'unavailable'
+  className?: string
+}
+
+/** Successful load with nothing to show, or a missing/unavailable resource. */
 export function CatalogEmpty({
   title,
   description,
   actionLabel = 'عرض كل المنتجات',
   actionTo = '/products',
-}: {
-  title: string
-  description?: string
-  actionLabel?: string
-  actionTo?: string
-}) {
+  onAction,
+  secondaryLabel,
+  secondaryTo,
+  tone = 'empty',
+  className,
+}: CatalogEmptyProps) {
   return (
-    <div className="rounded-xl border border-dashed border-taupe/45 bg-card/70 px-6 py-14 text-center">
-      <p className="font-display text-xl text-brown">{title}</p>
-      {description ? <p className="mt-2 text-sm leading-7 text-mocha">{description}</p> : null}
-      <Button asChild variant="outline" className="mt-6">
-        <Link to={actionTo}>{actionLabel}</Link>
-      </Button>
+    <div
+      className={cn(
+        'px-6 py-14 text-center',
+        tone === 'unavailable'
+          ? 'rounded-xl border border-taupe/40 bg-mist/50'
+          : 'rounded-xl border border-dashed border-taupe/45 bg-card/70',
+        className,
+      )}
+      role={tone === 'unavailable' ? 'status' : undefined}
+    >
+      <h2 className="font-display text-xl font-semibold text-brown">{title}</h2>
+      {description ? (
+        <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-mocha">{description}</p>
+      ) : null}
+      <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+        {onAction ? (
+          <Button type="button" variant="outline" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        ) : (
+          <Button asChild variant="outline">
+            <Link to={actionTo}>{actionLabel}</Link>
+          </Button>
+        )}
+        {secondaryLabel && secondaryTo ? (
+          <Button asChild variant="ghost">
+            <Link to={secondaryTo}>{secondaryLabel}</Link>
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }
 
-export function CatalogError({
-  message,
-  onRetry,
-}: {
+type CatalogErrorProps = {
+  title?: string
   message: string
   onRetry?: () => void
-}) {
+  secondaryLabel?: string
+  secondaryTo?: string
+  className?: string
+}
+
+/** Failed load — never use this for an intentional empty result. */
+export function CatalogError({
+  title = 'تعذر التحميل',
+  message,
+  onRetry,
+  secondaryLabel = 'العودة للرئيسية',
+  secondaryTo = '/',
+  className,
+}: CatalogErrorProps) {
   return (
-    <div className="rounded-xl border border-danger/20 bg-danger/5 px-6 py-10 text-center">
-      <p className="text-sm text-danger">{message}</p>
-      {onRetry ? (
-        <Button type="button" variant="outline" className="mt-5" onClick={onRetry}>
-          إعادة المحاولة
-        </Button>
-      ) : null}
+    <div
+      className={cn(
+        'rounded-xl border border-danger/20 bg-danger/5 px-6 py-10 text-center',
+        className,
+      )}
+      role="alert"
+    >
+      <h2 className="font-display text-lg font-semibold text-brown">{title}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-mocha">{message}</p>
+      <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+        {onRetry ? (
+          <Button type="button" variant="outline" onClick={onRetry}>
+            إعادة المحاولة
+          </Button>
+        ) : null}
+        {secondaryLabel && secondaryTo ? (
+          <Button asChild variant="ghost">
+            <Link to={secondaryTo}>{secondaryLabel}</Link>
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }

@@ -86,7 +86,12 @@ export function toAppError(error: unknown, fallbackMessage = 'حدث خطأ غي
   }
 
   if (typeof error === 'string') {
-    return new AppError('unknown', error)
+    // Never surface raw technical strings to customers.
+    const looksTechnical =
+      /supabase|postgres|rpc|pgrst|stack|exception|uuid|sql|jwt|permission denied/i.test(
+        error,
+      ) || error.length > 180
+    return new AppError('unknown', looksTechnical ? fallbackMessage : error)
   }
 
   return new AppError('unknown', fallbackMessage, { cause: error })

@@ -84,7 +84,9 @@ export function ProductsPage() {
         setError(null)
       } catch (err) {
         if (!active) return
-        setError(getErrorMessage(err, 'تعذر تحميل المنتجات. حاول مرة أخرى.'))
+        setError(
+          getErrorMessage(err, 'تعذر تحميل المنتجات. تحققي من الاتصال ثم حاولي مرة أخرى.'),
+        )
       } finally {
         if (active) setLoading(false)
       }
@@ -119,12 +121,30 @@ export function ProductsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const emptyTitle = query
-    ? 'لا توجد منتجات مطابقة لبحثك'
-    : 'لا توجد منتجات مطابقة للتصفية'
-  const emptyDescription = query
-    ? 'جرّبي كلمات أخرى أو امسحي البحث لعرض المجموعة الكاملة.'
-    : 'عدّلي التصفية أو اعرضي كل المنتجات.'
+  const hasActiveFilters = Boolean(
+    controls.categorySlug ||
+      controls.onlyNew ||
+      controls.onlyFeatured ||
+      controls.onlySale ||
+      controls.minPrice ||
+      controls.maxPrice ||
+      controls.sort !== 'newest',
+  )
+
+  const emptyCatalog = !query && products.length === 0
+  const emptySearch = Boolean(query) && filtered.length === 0
+  const emptyFilters = !query && products.length > 0 && hasActiveFilters && filtered.length === 0
+
+  const emptyTitle = emptyCatalog
+    ? 'لا توجد منتجات للعرض حالياً'
+    : emptySearch
+      ? 'لا توجد منتجات مطابقة لبحثك'
+      : 'لا توجد منتجات مطابقة للتصفية'
+  const emptyDescription = emptyCatalog
+    ? 'عودي قريباً لاكتشاف قطع جديدة من أثر.'
+    : emptySearch
+      ? 'جرّبي كلمات أخرى أو امسحي البحث لعرض المجموعة الكاملة.'
+      : 'عدّلي التصفية أو اعرضي كل المنتجات.'
 
   const isDefaultListing =
     !query && !controls.onlySale && !controls.onlyNew && !controls.onlyFeatured
@@ -188,7 +208,13 @@ export function ProductsPage() {
         />
 
         {error ? (
-          <CatalogError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
+          <CatalogError
+            title="تعذر تحميل المنتجات"
+            message={error}
+            onRetry={() => setReloadKey((k) => k + 1)}
+            secondaryLabel="العودة للرئيسية"
+            secondaryTo="/"
+          />
         ) : null}
 
         {loading ? (
@@ -210,8 +236,13 @@ export function ProductsPage() {
           <CatalogEmpty
             title={emptyTitle}
             description={emptyDescription}
-            actionLabel="عرض كل المنتجات"
-            actionTo="/products"
+            actionLabel={
+              emptySearch ? 'مسح البحث' : emptyFilters ? 'مسح التصفية' : 'العودة للرئيسية'
+            }
+            actionTo={emptySearch ? '/products' : '/'}
+            onAction={emptyFilters ? clearControls : undefined}
+            secondaryLabel={emptySearch || emptyFilters ? 'العودة للرئيسية' : undefined}
+            secondaryTo={emptySearch || emptyFilters ? '/' : undefined}
           />
         ) : null}
       </div>

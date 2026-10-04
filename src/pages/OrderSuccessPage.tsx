@@ -34,18 +34,33 @@ export function OrderSuccessPage() {
   return (
     <>
       <PageMeta
-        title="تم تأكيد الطلب"
-        description="تم استلام طلبك من أثر بنجاح."
+        title={confirmation ? 'تم تأكيد الطلب' : 'متابعة الطلب'}
+        description={
+          confirmation
+            ? 'تم استلام طلبك من أثر بنجاح.'
+            : 'متابعة طلب أثر — لا يتم إنشاء طلب جديد عند فتح هذه الصفحة مباشرة.'
+        }
         path="/order-success"
         noIndex
       />
       <div className="container-athar flex min-h-[60vh] items-center justify-center py-12 sm:py-16">
         <div className="w-full max-w-lg text-center">
           <BrandLogo imgClassName="mx-auto h-20 w-20" />
-          <h1 className="mt-6 font-display text-3xl font-semibold">شكراً لطلبكِ من أثر</h1>
-          <p className="mt-3 text-sm leading-7 text-mocha">
-            تم استلام طلبك بنجاح. سنتواصل معكِ قريباً لتأكيد التفاصيل والتوصيل.
-          </p>
+          {confirmation ? (
+            <>
+              <h1 className="mt-6 font-display text-3xl font-semibold">شكراً لطلبكِ من أثر</h1>
+              <p className="mt-3 text-sm leading-7 text-mocha">
+                تم استلام طلبك بنجاح. سنتواصل معكِ قريباً لتأكيد التفاصيل والتوصيل.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-6 font-display text-3xl font-semibold">متابعة الطلب</h1>
+              <p className="mt-3 text-sm leading-7 text-mocha">
+                لا توجد بيانات تأكيد محفوظة لهذه الزيارة. لم يُنشأ أي طلب جديد من فتح هذه الصفحة.
+              </p>
+            </>
+          )}
 
           {confirmation ? (
             <div className="mt-8 rounded-xl border border-taupe/30 bg-card p-5 text-start sm:p-6">
@@ -100,11 +115,13 @@ export function OrderSuccessPage() {
             </p>
           )}
 
-          <div className="mt-8 space-y-3 text-sm leading-7 text-mocha">
-            <p className="font-medium text-brown">ماذا بعد؟</p>
-            <p>نراجع طلبكِ ونتواصل لتأكيد التوفر وموعد التوصيل.</p>
-            <p>الدفع عند الاستلام — لم يتم تحصيل أي دفعة إلكترونية عبر الموقع.</p>
-          </div>
+          {confirmation ? (
+            <div className="mt-8 space-y-3 text-sm leading-7 text-mocha">
+              <p className="font-medium text-brown">ماذا بعد؟</p>
+              <p>نراجع طلبكِ ونتواصل لتأكيد التوفر وموعد التوصيل.</p>
+              <p>الدفع عند الاستلام — لم يتم تحصيل أي دفعة إلكترونية عبر الموقع.</p>
+            </div>
+          ) : null}
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild>

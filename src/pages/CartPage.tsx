@@ -192,9 +192,11 @@ export function CartPage() {
         {items.length === 0 ? (
           <CatalogEmpty
             title="سلتك فارغة حالياً"
-            description="ابدئي باختيار قطعة تترك أثراً."
+            description="ابدئي باختيار قطعة تترك أثراً من مجموعة أثر."
             actionLabel="تسوقي المنتجات"
             actionTo="/products"
+            secondaryLabel="العودة للرئيسية"
+            secondaryTo="/"
           />
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">

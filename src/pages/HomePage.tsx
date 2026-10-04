@@ -11,6 +11,7 @@ import { HOME_DESCRIPTION, HOME_TITLE } from '@/config/site'
 import { organizationSchema, websiteSchema } from '@/lib/seoSchema'
 import { CategoryCard } from '@/features/categories/CategoryCard'
 import {
+  CatalogEmpty,
   CatalogError,
   CategoryGridSkeleton,
   HeroMediaSkeleton,
@@ -35,6 +36,7 @@ export function HomePage() {
   const [newcomers, setNewcomers] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [partialWarning, setPartialWarning] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [heroImgMode, setHeroImgMode] = useState<'optimized' | 'original' | 'failed'>(
     'optimized',
@@ -45,22 +47,54 @@ export function HomePage() {
     async function load() {
       setLoading(true)
       setHeroImgMode('optimized')
+      setPartialWarning(null)
       try {
-        const [cats, featuredProducts, newProducts, products] = await Promise.all([
+        const [catsResult, featuredResult, newResult, productsResult] = await Promise.allSettled([
           getActiveCategories(),
           getFeaturedProducts(),
           getNewProducts(),
           getActiveProducts(),
         ])
         if (!active) return
+
+        const cats = catsResult.status === 'fulfilled' ? catsResult.value : []
+        const featuredProducts =
+          featuredResult.status === 'fulfilled' ? featuredResult.value : []
+        const newProducts = newResult.status === 'fulfilled' ? newResult.value : []
+        const products = productsResult.status === 'fulfilled' ? productsResult.value : []
+
+        const failedCount = [catsResult, featuredResult, newResult, productsResult].filter(
+          (result) => result.status === 'rejected',
+        ).length
+
         setCategories(cats)
         setFeatured(featuredProducts.slice(0, 4))
         setNewcomers(newProducts.slice(0, 4))
         setAllProducts(products)
-        setError(null)
+
+        if (failedCount === 4) {
+          const firstRejection = [catsResult, featuredResult, newResult, productsResult].find(
+            (result) => result.status === 'rejected',
+          ) as PromiseRejectedResult | undefined
+          setError(
+            getErrorMessage(
+              firstRejection?.reason,
+              'تعذر تحميل واجهة المتجر. تحققي من الاتصال ثم حاولي مرة أخرى.',
+            ),
+          )
+          setPartialWarning(null)
+        } else if (failedCount > 0) {
+          setError(null)
+          setPartialWarning('تعذر تحميل بعض أقسام الصفحة. يمكنكِ إعادة المحاولة.')
+        } else {
+          setError(null)
+          setPartialWarning(null)
+        }
       } catch (err) {
         if (!active) return
-        setError(getErrorMessage(err, 'تعذر تحميل واجهة المتجر. حاول مرة أخرى.'))
+        setError(
+          getErrorMessage(err, 'تعذر تحميل واجهة المتجر. تحققي من الاتصال ثم حاولي مرة أخرى.'),
+        )
       } finally {
         if (active) setLoading(false)
       }
@@ -179,7 +213,43 @@ export function HomePage() {
 
       {error ? (
         <div className="container-athar py-8">
-          <CatalogError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
+          <CatalogError
+            title="تعذر تحميل المتجر"
+            message={error}
+            onRetry={() => setReloadKey((k) => k + 1)}
+          />
+        </div>
+      ) : null}
+
+      {partialWarning && !error ? (
+        <div className="container-athar pt-8">
+          <div
+            className="flex flex-col items-start justify-between gap-3 rounded-xl border border-gold/35 bg-gold/10 px-4 py-3 text-sm text-brown sm:flex-row sm:items-center"
+            role="status"
+          >
+            <p>{partialWarning}</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setReloadKey((k) => k + 1)}
+            >
+              إعادة المحاولة
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {!loading && !error && allProducts.length === 0 && categories.length === 0 ? (
+        <div className="container-athar py-10">
+          <CatalogEmpty
+            title="المجموعة غير متاحة حالياً"
+            description="لا توجد منتجات للعرض في الوقت الحالي. عودي قريباً لاكتشاف قطع أثر."
+            actionLabel="العودة للرئيسية"
+            actionTo="/"
+            secondaryLabel="تواصلي معنا"
+            secondaryTo="/#contact"
+          />
         </div>
       ) : null}
 
@@ -208,34 +278,40 @@ export function HomePage() {
         </section>
       ) : null}
 
-      <section className="container-athar py-16 sm:py-20" id="categories">
-        <div className="mb-10 flex items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">التصنيفات</p>
-            <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">تسوقي حسب المجموعة</h2>
+      {!error ? (
+        <section className="container-athar py-16 sm:py-20" id="categories">
+          <div className="mb-10 flex items-end justify-between gap-4">
+            <div>
+              <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">التصنيفات</p>
+              <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">تسوقي حسب المجموعة</h2>
+            </div>
+            <Button asChild variant="link" className="hidden sm:inline-flex">
+              <Link to="/products">عرض الكل</Link>
+            </Button>
           </div>
-          <Button asChild variant="link" className="hidden sm:inline-flex">
-            <Link to="/products">عرض الكل</Link>
-          </Button>
-        </div>
-        {loading ? (
-          <CategoryGridSkeleton count={4} />
-        ) : categories.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                productCount={categoryCounts.get(category.id) ?? 0}
-              />
-            ))}
-          </div>
-        ) : !error ? (
-          <p className="rounded-lg border border-dashed border-taupe/45 bg-card/60 px-6 py-10 text-center text-sm text-mocha">
-            لا توجد تصنيفات نشطة حالياً.
-          </p>
-        ) : null}
-      </section>
+          {loading ? (
+            <CategoryGridSkeleton count={4} />
+          ) : categories.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              {categories.map((category) => (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  productCount={categoryCounts.get(category.id) ?? 0}
+                />
+              ))}
+            </div>
+          ) : (
+            <CatalogEmpty
+              title="لا توجد تصنيفات حالياً"
+              description="يمكنكِ تصفح كل المنتجات مباشرة من المجموعة الكاملة."
+              actionLabel="تسوقي المنتجات"
+              actionTo="/products"
+              className="py-10"
+            />
+          )}
+        </section>
+      ) : null}
 
       {(loading || newcomers.length > 0) && !error ? (
         <section className="bg-mist/70 py-16 sm:py-20">
@@ -311,7 +387,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="container-athar py-16 sm:py-20">
+      <section className="container-athar py-16 sm:py-20" id="contact">
         <div className="mx-auto max-w-2xl rounded-2xl bg-espresso px-6 py-12 text-center text-cream sm:px-10">
           <p className="mb-2 text-xs tracking-[0.28em] text-gold-soft">تواصلي معنا</p>
           <h2 className="font-calligraphy text-2xl font-normal sm:text-3xl">استفسارك مهم لنا</h2>

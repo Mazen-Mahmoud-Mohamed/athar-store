@@ -73,7 +73,9 @@ export function CategoryPage() {
         setError(null)
       } catch (err) {
         if (!active) return
-        setError(getErrorMessage(err, 'تعذر تحميل التصنيف. حاول مرة أخرى.'))
+        setError(
+          getErrorMessage(err, 'تعذر تحميل التصنيف. تحققي من الاتصال ثم حاولي مرة أخرى.'),
+        )
       } finally {
         if (active) setLoading(false)
       }
@@ -168,7 +170,7 @@ export function CategoryPage() {
           ) : (
             <>
               <h1 className="font-display text-3xl font-semibold sm:text-4xl">
-                {category?.name ?? 'التصنيف'}
+                {notFound ? 'التصنيف غير متاح' : (category?.name ?? 'التصنيف')}
               </h1>
               {category?.description ? (
                 <p className="mt-3 text-sm leading-7 text-mocha">{category.description}</p>
@@ -190,7 +192,13 @@ export function CategoryPage() {
         ) : null}
 
         {error ? (
-          <CatalogError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
+          <CatalogError
+            title="تعذر تحميل التصنيف"
+            message={error}
+            onRetry={() => setReloadKey((k) => k + 1)}
+            secondaryLabel="العودة للمنتجات"
+            secondaryTo="/products"
+          />
         ) : null}
 
         {loading ? (
@@ -200,10 +208,13 @@ export function CategoryPage() {
           />
         ) : notFound ? (
           <CatalogEmpty
-            title="هذا القسم غير متاح"
-            description="ربما تم إيقافه أو لم يعد موجوداً حالياً."
+            tone="unavailable"
+            title="هذا التصنيف غير متاح"
+            description="ربما تم إيقافه أو لم يعد موجوداً حالياً. يمكنكِ تصفح باقي المجموعة."
             actionLabel="العودة للمنتجات"
             actionTo="/products"
+            secondaryLabel="العودة للرئيسية"
+            secondaryTo="/"
           />
         ) : !error && filtered.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
@@ -211,12 +222,23 @@ export function CategoryPage() {
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
-        ) : !error ? (
+        ) : !error && products.length === 0 ? (
           <CatalogEmpty
-            title="لا توجد منتجات متاحة في هذا القسم حاليًا"
+            title="لا توجد منتجات في هذا التصنيف حالياً"
             description="عودي قريباً لاكتشاف قطع جديدة من أثر."
             actionLabel="عرض كل المنتجات"
             actionTo="/products"
+            secondaryLabel="العودة للرئيسية"
+            secondaryTo="/"
+          />
+        ) : !error ? (
+          <CatalogEmpty
+            title="لا توجد منتجات مطابقة للتصفية"
+            description="عدّلي التصفية لعرض منتجات هذا التصنيف."
+            actionLabel="مسح التصفية"
+            onAction={clearControls}
+            secondaryLabel="عرض كل المنتجات"
+            secondaryTo="/products"
           />
         ) : null}
       </div>

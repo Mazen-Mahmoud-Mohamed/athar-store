@@ -78,7 +78,9 @@ export function ProductDetailsPage() {
         setError(null)
       } catch (err) {
         if (!active) return
-        setError(getErrorMessage(err, 'تعذر تحميل المنتج. حاول مرة أخرى.'))
+        setError(
+          getErrorMessage(err, 'تعذر تحميل المنتج. تحققي من الاتصال ثم حاولي مرة أخرى.'),
+        )
       } finally {
         if (active) setLoading(false)
       }
@@ -112,7 +114,13 @@ export function ProductDetailsPage() {
     return (
       <div className="container-athar py-16">
         <PageMeta title="تعذر تحميل المنتج" path="/products" noIndex />
-        <CatalogError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
+        <CatalogError
+          title="تعذر تحميل المنتج"
+          message={error}
+          onRetry={() => setReloadKey((k) => k + 1)}
+          secondaryLabel="العودة للمنتجات"
+          secondaryTo="/products"
+        />
       </div>
     )
   }
@@ -122,10 +130,13 @@ export function ProductDetailsPage() {
       <div className="container-athar py-16">
         <PageMeta title="المنتج غير متوفر" path="/products" noIndex />
         <CatalogEmpty
-          title="المنتج غير متوفر"
-          description="قد يكون المنتج غير نشط أو غير موجود حالياً."
+          tone="unavailable"
+          title="هذا المنتج غير متاح"
+          description="قد يكون غير نشط أو لم يعد موجوداً في المتجر حالياً."
           actionLabel="العودة للمنتجات"
           actionTo="/products"
+          secondaryLabel="العودة للرئيسية"
+          secondaryTo="/"
         />
       </div>
     )
