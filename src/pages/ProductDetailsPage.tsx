@@ -1,6 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Minus, Plus, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import {
+  buyNowCheckoutPath,
+  setBuyNowIntent,
+} from '@/features/checkout/buyNowIntent'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
@@ -171,6 +175,21 @@ export function ProductDetailsPage() {
     window.setTimeout(() => setAddedFlash(false), 1800)
   }
 
+  function handleBuyNow() {
+    if (outOfStock) return
+    const safeQty = Math.min(qty, maxQty)
+    if (safeQty < 1) return
+    setBuyNowIntent({
+      productId: current.id,
+      name: current.name,
+      price: current.price,
+      imageUrl: current.image_url,
+      slug: current.slug,
+      quantity: safeQty,
+    })
+    navigate(buyNowCheckoutPath())
+  }
+
   return (
     <>
       <PageMeta
@@ -261,8 +280,8 @@ export function ProductDetailsPage() {
               </span>
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="inline-flex items-center rounded-md border border-taupe/50 bg-card">
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="inline-flex w-fit items-center rounded-md border border-taupe/50 bg-card">
                 <Button
                   type="button"
                   variant="ghost"
@@ -292,19 +311,34 @@ export function ProductDetailsPage() {
                 </Button>
               </div>
 
-              <Button
-                size="lg"
-                className="min-w-44 flex-1 sm:flex-none"
-                disabled={outOfStock}
-                onClick={handleAdd}
-              >
-                <ShoppingBag aria-hidden="true" />
-                {addedFlash ? 'تمت الإضافة' : 'أضيفي إلى السلة'}
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="min-h-12 w-full min-w-44 sm:flex-1"
+                  disabled={outOfStock}
+                  onClick={handleBuyNow}
+                >
+                  شراء الآن
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="min-h-12 w-full min-w-44 sm:flex-1"
+                  disabled={outOfStock}
+                  onClick={handleAdd}
+                >
+                  <ShoppingBag aria-hidden="true" />
+                  {addedFlash ? 'تمت الإضافة' : 'أضيفي إلى السلة'}
+                </Button>
+              </div>
             </div>
 
             {outOfStock ? (
-              <p className="text-sm text-danger">لا يمكن إضافة هذا المنتج إلى السلة حالياً.</p>
+              <p className="text-sm text-danger">
+                لا يمكن شراء هذا المنتج أو إضافته إلى السلة حالياً.
+              </p>
             ) : null}
           </div>
         </div>

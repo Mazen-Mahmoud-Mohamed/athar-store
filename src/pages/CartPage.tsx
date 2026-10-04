@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
 import { useCart } from '@/features/cart/cart-context'
+import { clearBuyNowIntent } from '@/features/checkout/buyNowIntent'
 import { catalogImageProps } from '@/lib/imageUrl'
 import { formatPrice } from '@/lib/utils'
 import { getProductById } from '@/services/productService'
@@ -37,6 +38,11 @@ export function CartPage() {
   const { items, itemCount, subtotal, updateQuantity, removeItem, clearCart, syncItem } =
     useCart()
   const [statuses, setStatuses] = useState<Record<string, LineStatus>>({})
+
+  useEffect(() => {
+    // Visiting the cart exits any temporary Buy Now checkout intent.
+    clearBuyNowIntent()
+  }, [])
 
   useEffect(() => {
     let active = true

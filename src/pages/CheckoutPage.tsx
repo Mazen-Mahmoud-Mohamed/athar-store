@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,13 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
 import { useCart } from '@/features/cart/cart-context'
+import {
+  BUY_NOW_QUERY,
+  clearBuyNowIntent,
+  readBuyNowIntent,
+  writeBuyNowIntentItem,
+} from '@/features/checkout/buyNowIntent'
+import { productPath } from '@/config/site'
 import { catalogImageProps } from '@/lib/imageUrl'
 import { validateCartForCheckout } from '@/lib/cartValidation'
 import {
@@ -17,6 +24,7 @@ import {
 import { AppError, getErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/utils'
 import { createOrder, rememberGuestOrderConfirmation } from '@/services/orderService'
+import type { CartItem } from '@/types'
 import { toast } from 'sonner'
 
 function RequiredMark() {
@@ -30,8 +38,15 @@ function RequiredMark() {
 
 export function CheckoutPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const formId = useId()
-  const { items, subtotal, replaceItems, clearCart } = useCart()
+  const { items: cartItems, replaceItems, clearCart } = useCart()
+  const buyNowMode = searchParams.get('intent') === BUY_NOW_QUERY
+  const [buyNowItems, setBuyNowItems] = useState<CartItem[]>(() => {
+    if (!buyNowMode) return []
+    const intent = readBuyNowIntent()
+    return intent ? [intent] : []
+  })
   const [customerName, setCustomerName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -48,6 +63,30 @@ export function CheckoutPage() {
   const phoneRef = useRef<HTMLInputElement>(null)
   const addressRef = useRef<HTMLTextAreaElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
+
+  const items = buyNowMode ? buyNowItems : cartItems
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items],
+  )
+  const backLink =
+    buyNowMode && buyNowItems[0]
+      ? productPath({ id: buyNowItems[0].productId, slug: buyNowItems[0].slug })
+      : '/cart'
+  const backLabel = buyNowMode ? 'العودة للمنتج' : 'العودة للسلة'
+
+  const applyCheckoutItems = useCallback(
+    (next: CartItem[]) => {
+      if (buyNowMode) {
+        const only = next[0] ?? null
+        setBuyNowItems(only ? [only] : [])
+        writeBuyNowIntentItem(only)
+        return
+      }
+      replaceItems(next)
+    },
+    [buyNowMode, replaceItems],
+  )
 
   const applyCartValidation = useCallback(
     async (sourceItems = items) => {
@@ -68,7 +107,7 @@ export function CheckoutPage() {
         )
 
       if (identityChanged) {
-        replaceItems(result.syncedItems)
+        applyCheckoutItems(result.syncedItems)
       }
 
       if (!result.ok || result.messages.length > 0) {
@@ -78,8 +117,14 @@ export function CheckoutPage() {
 
       return result
     },
-    [items, replaceItems],
+    [items, applyCheckoutItems],
   )
+
+  useEffect(() => {
+    if (!buyNowMode) return
+    const intent = readBuyNowIntent()
+    setBuyNowItems(intent ? [intent] : [])
+  }, [buyNowMode])
 
   useEffect(() => {
     let active = true
@@ -93,7 +138,11 @@ export function CheckoutPage() {
         await applyCartValidation()
       } catch {
         if (active) {
-          setCartMessages(['تعذر التحقق من السلة حالياً. حاولي مرة أخرى.'])
+          setCartMessages([
+            buyNowMode
+              ? 'تعذر التحقق من المنتج حالياً. حاولي مرة أخرى.'
+              : 'تعذر التحقق من السلة حالياً. حاولي مرة أخرى.',
+          ])
           setNeedsReview(true)
         }
       } finally {
@@ -106,7 +155,7 @@ export function CheckoutPage() {
     }
     // Initial checkout landing validation only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [buyNowMode])
 
   if (items.length === 0 && !submitting) {
     return (
@@ -119,10 +168,18 @@ export function CheckoutPage() {
         />
         <div className="container-athar py-16">
           <CatalogEmpty
-            title="لا توجد منتجات لإتمام الطلب"
-            description="أضيفي قطعة إلى السلة ثم عودي لإتمام الطلب."
-            actionLabel="تسوقي المنتجات"
+            title={
+              buyNowMode ? 'تعذر متابعة الشراء المباشر' : 'لا توجد منتجات لإتمام الطلب'
+            }
+            description={
+              buyNowMode
+                ? 'انتهت صلاحية طلب الشراء المباشر أو لم يعد المنتج متاحاً. عودي لصفحة المنتج أو السلة.'
+                : 'أضيفي قطعة إلى السلة ثم عودي لإتمام الطلب.'
+            }
+            actionLabel={buyNowMode ? 'العودة للمنتجات' : 'تسوقي المنتجات'}
             actionTo="/products"
+            secondaryLabel={buyNowMode ? 'مراجعة السلة' : undefined}
+            secondaryTo={buyNowMode ? '/cart' : undefined}
             titleAs="h1"
           />
         </div>
@@ -207,7 +264,12 @@ export function CheckoutPage() {
 
       const confirmation = await createOrder(validated.payload, cartCheck.syncedItems)
       rememberGuestOrderConfirmation(confirmation)
-      clearCart()
+      if (buyNowMode) {
+        clearBuyNowIntent()
+        setBuyNowItems([])
+      } else {
+        clearCart()
+      }
       toast.success('تم استلام طلبك بنجاح')
       // Keep submit locked after success so a late double-click cannot re-fire.
       navigate('/order-success', { state: { confirmation }, replace: true })
@@ -264,7 +326,11 @@ export function CheckoutPage() {
             className="mb-6 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm leading-7 text-brown"
             role="alert"
           >
-            <p className="font-medium">تم تحديث السلة — راجعي التفاصيل قبل التأكيد:</p>
+            <p className="font-medium">
+              {buyNowMode
+                ? 'تم تحديث تفاصيل المنتج — راجعيها قبل التأكيد:'
+                : 'تم تحديث السلة — راجعي التفاصيل قبل التأكيد:'}
+            </p>
             {cartMessages.length > 0 ? (
               <ul className="mt-2 list-disc space-y-1 pe-5">
                 {cartMessages.map((message) => (
@@ -274,7 +340,7 @@ export function CheckoutPage() {
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link to="/cart">مراجعة السلة</Link>
+                <Link to={backLink}>{buyNowMode ? 'مراجعة المنتج' : 'مراجعة السلة'}</Link>
               </Button>
               <Button
                 type="button"
@@ -514,12 +580,14 @@ export function CheckoutPage() {
 
             {needsReview ? (
               <p className="mt-3 text-center text-xs text-danger">
-                راجعي تحديثات السلة أولاً قبل تأكيد الطلب.
+                {buyNowMode
+                  ? 'راجعي تحديثات المنتج أولاً قبل تأكيد الطلب.'
+                  : 'راجعي تحديثات السلة أولاً قبل تأكيد الطلب.'}
               </p>
             ) : null}
 
             <Button asChild variant="ghost" className="mt-2 w-full" disabled={submitting}>
-              <Link to="/cart">العودة للسلة</Link>
+              <Link to={backLink}>{backLabel}</Link>
             </Button>
           </aside>
         </form>
