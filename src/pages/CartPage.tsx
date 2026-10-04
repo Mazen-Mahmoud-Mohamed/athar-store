@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
 import { useCart } from '@/features/cart/cart-context'
+import { catalogImageProps } from '@/lib/imageUrl'
 import { formatPrice } from '@/lib/utils'
 import { getProductById } from '@/services/productService'
 
@@ -202,19 +203,30 @@ export function CartPage() {
                     key={item.productId}
                     className="flex flex-col gap-4 rounded-xl border border-taupe/30 bg-card p-4 sm:flex-row"
                   >
-                    <div className="size-28 shrink-0 overflow-hidden rounded-md bg-mist sm:size-24">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center font-display text-brown/25">
-                          أثر
-                        </div>
-                      )}
+                    <div
+                      className="size-28 shrink-0 overflow-hidden rounded-md bg-mist sm:size-24"
+                      aria-busy={status?.checking}
+                    >
+                      {(() => {
+                        const thumb = catalogImageProps(item.imageUrl, 'thumb')
+                        return thumb ? (
+                          <img
+                            src={thumb.src}
+                            srcSet={thumb.srcSet}
+                            sizes={thumb.sizes}
+                            alt={item.name}
+                            width={thumb.width}
+                            height={thumb.height}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center font-display text-brown/25">
+                            أثر
+                          </div>
+                        )
+                      })()}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-3">
                       <div className="flex items-start justify-between gap-3">

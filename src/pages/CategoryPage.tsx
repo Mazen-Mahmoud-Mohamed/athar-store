@@ -194,7 +194,10 @@ export function CategoryPage() {
         ) : null}
 
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <ProductGridSkeleton
+            count={8}
+            className="lg:grid-cols-3 xl:grid-cols-4"
+          />
         ) : notFound ? (
           <CatalogEmpty
             title="هذا القسم غير متاح"

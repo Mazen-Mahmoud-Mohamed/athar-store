@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
 import { useCart } from '@/features/cart/cart-context'
+import { catalogImageProps } from '@/lib/imageUrl'
 import { validateCartForCheckout } from '@/lib/cartValidation'
 import {
   type CheckoutFieldErrors,
@@ -172,13 +173,18 @@ export function CheckoutPage() {
         path="/checkout"
         noIndex
       />
-      <div className="container-athar py-10 sm:py-14">
+      <div className="container-athar py-10 sm:py-14" aria-busy={checkingCart}>
         <div className="mb-8">
           <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">الدفع عند الاستلام</p>
           <h1 className="font-display text-3xl font-semibold">إتمام الطلب</h1>
           <p className="mt-2 text-sm text-mocha">
             أدخلي بياناتك وسنؤكد الطلب عبر الهاتف أو واتساب.
           </p>
+          {checkingCart ? (
+            <p className="mt-2 text-xs text-mocha" role="status">
+              جارٍ التحقق من توفر المنتجات…
+            </p>
+          ) : null}
         </div>
 
         {needsReview ? (
@@ -322,18 +328,26 @@ export function CheckoutPage() {
               {items.map((item) => (
                 <li key={item.productId} className="flex gap-3 text-sm">
                   <div className="size-16 shrink-0 overflow-hidden rounded-md bg-mist">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center font-display text-brown/25">
-                        أثر
-                      </div>
-                    )}
+                    {(() => {
+                      const thumb = catalogImageProps(item.imageUrl, 'thumb')
+                      return thumb ? (
+                        <img
+                          src={thumb.src}
+                          srcSet={thumb.srcSet}
+                          sizes={thumb.sizes}
+                          alt={item.name}
+                          width={thumb.width}
+                          height={thumb.height}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center font-display text-brown/25">
+                          أثر
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-brown">{item.name}</p>

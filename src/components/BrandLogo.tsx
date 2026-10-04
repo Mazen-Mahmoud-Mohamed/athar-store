@@ -5,7 +5,9 @@ type BrandLogoProps = {
   className?: string
   imgClassName?: string
   alt?: string
+  /** Load eagerly for above-the-fold logos (does not force high fetch priority). */
   priority?: boolean
+  fetchPriority?: 'high' | 'low' | 'auto'
   /** Override logo asset (e.g. transparent mark for dark surfaces). */
   src?: string
 }
@@ -15,6 +17,7 @@ export function BrandLogo({
   imgClassName,
   alt = 'أثر — شعار العلامة',
   priority = false,
+  fetchPriority,
   src = atharLogo,
 }: BrandLogoProps) {
   return (
@@ -24,9 +27,9 @@ export function BrandLogo({
         alt={alt}
         width={160}
         height={160}
-        decoding={priority ? 'sync' : 'async'}
+        decoding="async"
         loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : undefined}
+        fetchPriority={fetchPriority}
         className={cn('h-auto w-full object-contain', imgClassName)}
       />
     </span>

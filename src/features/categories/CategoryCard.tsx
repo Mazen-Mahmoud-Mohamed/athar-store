@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import type { Category } from '@/types'
+import { catalogImageProps } from '@/lib/imageUrl'
 import { cn } from '@/lib/utils'
 
 type CategoryCardProps = {
@@ -18,8 +19,13 @@ const accents = [
 
 export function CategoryCard({ category, productCount, className }: CategoryCardProps) {
   const accent = accents[category.sort_order % accents.length]
-  const [imgFailed, setImgFailed] = useState(false)
-  const showImage = Boolean(category.image_url) && !imgFailed
+  const [imgMode, setImgMode] = useState<'optimized' | 'original' | 'failed'>('optimized')
+  const image =
+    imgMode === 'failed'
+      ? null
+      : imgMode === 'original' && category.image_url
+        ? { src: category.image_url, width: 640, height: 800 }
+        : catalogImageProps(category.image_url, 'card')
 
   return (
     <Link
@@ -35,15 +41,21 @@ export function CategoryCard({ category, productCount, className }: CategoryCard
       }
     >
       <div className={cn('aspect-[4/5] bg-gradient-to-br', accent)}>
-        {showImage ? (
+        {image ? (
           <img
-            src={category.image_url!}
+            src={image.src}
+            srcSet={image.srcSet}
+            sizes={image.sizes}
             alt={`تصنيف ${category.name}`}
-            width={640}
-            height={800}
+            width={image.width}
+            height={image.height}
             loading="lazy"
             decoding="async"
-            onError={() => setImgFailed(true)}
+            onError={() =>
+              setImgMode((mode) =>
+                mode === 'optimized' && category.image_url ? 'original' : 'failed',
+              )
+            }
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (

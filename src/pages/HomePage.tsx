@@ -13,11 +13,13 @@ import { CategoryCard } from '@/features/categories/CategoryCard'
 import {
   CatalogError,
   CategoryGridSkeleton,
+  HeroMediaSkeleton,
   ProductGridSkeleton,
 } from '@/features/catalog/CatalogStates'
 import { ProductCard } from '@/features/products/ProductCard'
 import { isOnSale } from '@/lib/catalog'
 import { getErrorMessage } from '@/lib/errors'
+import { catalogImageProps } from '@/lib/imageUrl'
 import { getActiveCategories } from '@/services/categoryService'
 import {
   getActiveProducts,
@@ -34,12 +36,15 @@ export function HomePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  const [heroImgFailed, setHeroImgFailed] = useState(false)
+  const [heroImgMode, setHeroImgMode] = useState<'optimized' | 'original' | 'failed'>(
+    'optimized',
+  )
 
   useEffect(() => {
     let active = true
     async function load() {
       setLoading(true)
+      setHeroImgMode('optimized')
       try {
         const [cats, featuredProducts, newProducts, products] = await Promise.all([
           getActiveCategories(),
@@ -81,7 +86,13 @@ export function HomePage() {
   }, [allProducts])
 
   const heroProduct = featured[0] ?? newcomers[0] ?? allProducts[0] ?? null
-  const heroImage = heroProduct?.image_url && !heroImgFailed ? heroProduct.image_url : null
+  const heroSource = heroProduct?.image_url ?? null
+  const heroImage =
+    heroImgMode === 'failed' || !heroSource
+      ? null
+      : heroImgMode === 'original'
+        ? { src: heroSource, width: 960, height: 1200 }
+        : catalogImageProps(heroSource, 'hero')
 
   return (
     <>
@@ -89,7 +100,7 @@ export function HomePage() {
         title={HOME_TITLE}
         description={HOME_DESCRIPTION}
         path="/"
-        image={heroImage}
+        image={heroSource}
         absoluteTitle
       />
       <JsonLd id="organization" data={organizationSchema()} />
@@ -129,17 +140,28 @@ export function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="relative mx-auto aspect-[4/5] max-w-md overflow-hidden bg-mist shadow-lift lg:max-w-none">
-              {heroImage ? (
+            <div
+              className="relative mx-auto aspect-[4/5] max-w-md overflow-hidden bg-mist shadow-lift lg:max-w-none"
+              aria-busy={loading}
+            >
+              {loading ? (
+                <HeroMediaSkeleton />
+              ) : heroImage ? (
                 <img
-                  src={heroImage}
+                  src={heroImage.src}
+                  srcSet={'srcSet' in heroImage ? heroImage.srcSet : undefined}
+                  sizes={'sizes' in heroImage ? heroImage.sizes : undefined}
                   alt={heroProduct ? heroProduct.name : 'أثر — حقائب وشنط نسائية'}
-                  width={960}
-                  height={1200}
+                  width={heroImage.width}
+                  height={heroImage.height}
                   fetchPriority="high"
                   decoding="async"
                   className="h-full w-full object-cover"
-                  onError={() => setHeroImgFailed(true)}
+                  onError={() =>
+                    setHeroImgMode((mode) =>
+                      mode === 'optimized' && heroSource ? 'original' : 'failed',
+                    )
+                  }
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-sand via-mist to-blush">

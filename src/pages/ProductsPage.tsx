@@ -192,11 +192,18 @@ export function ProductsPage() {
         ) : null}
 
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <ProductGridSkeleton
+            count={8}
+            className="lg:grid-cols-3 xl:grid-cols-4"
+          />
         ) : !error && filtered.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {filtered.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                priority={index < 2}
+              />
             ))}
           </div>
         ) : !error ? (

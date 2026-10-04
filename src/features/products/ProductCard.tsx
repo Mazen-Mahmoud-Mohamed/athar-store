@@ -6,19 +6,27 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/features/cart/cart-context'
 import { productPath } from '@/config/site'
+import { catalogImageProps } from '@/lib/imageUrl'
 import { calcDiscountPercent, cn, formatPrice } from '@/lib/utils'
 
 type ProductCardProps = {
   product: Product
   className?: string
+  /** First visible card in a grid may opt into higher image priority. */
+  priority?: boolean
 }
 
-export function ProductCard({ product, className }: ProductCardProps) {
+export function ProductCard({ product, className, priority = false }: ProductCardProps) {
   const { addItem } = useCart()
-  const [imgFailed, setImgFailed] = useState(false)
+  const [imgMode, setImgMode] = useState<'optimized' | 'original' | 'failed'>('optimized')
   const discount = calcDiscountPercent(product.price, product.old_price)
   const outOfStock = product.stock_quantity <= 0
-  const showImage = Boolean(product.image_url) && !imgFailed
+  const image =
+    imgMode === 'failed'
+      ? null
+      : imgMode === 'original' && product.image_url
+        ? { src: product.image_url, width: 640, height: 800 }
+        : catalogImageProps(product.image_url, 'card')
 
   return (
     <article
@@ -29,15 +37,22 @@ export function ProductCard({ product, className }: ProductCardProps) {
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-mist">
         <Link to={productPath(product)} className="block h-full w-full" aria-label={product.name}>
-          {showImage ? (
+          {image ? (
             <img
-              src={product.image_url!}
+              src={image.src}
+              srcSet={image.srcSet}
+              sizes={image.sizes}
               alt={product.name}
-              width={640}
-              height={800}
-              loading="lazy"
+              width={image.width}
+              height={image.height}
+              loading={priority ? 'eager' : 'lazy'}
               decoding="async"
-              onError={() => setImgFailed(true)}
+              fetchPriority={priority ? 'high' : 'auto'}
+              onError={() =>
+                setImgMode((mode) =>
+                  mode === 'optimized' && product.image_url ? 'original' : 'failed',
+                )
+              }
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
