@@ -92,21 +92,24 @@ export function HomePage() {
       <section className="relative overflow-hidden border-b border-taupe/20">
         <div className="absolute inset-0 surface-warm" />
         <div className="container-athar relative grid items-center gap-8 py-12 sm:gap-10 lg:min-h-[72vh] lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
-          <div className="max-w-xl space-y-6">
-            <BrandLogo
-              priority
-              src={atharLogoTransparent}
-              imgClassName="h-20 w-20 sm:h-24 sm:w-24"
-            />
-            <div className="space-y-4">
-              <h1 className="font-display text-4xl font-semibold leading-[1.25] text-brown sm:text-5xl lg:text-[3.25rem]">
-                أناقة تترك أثرًا
-              </h1>
-              <p className="max-w-md text-base leading-8 text-mocha sm:text-lg">
-                حقائب وإكسسوارات مصرية بروح أنثوية راقية — تفاصيل دافئة، حضور هادئ، ولمسة لا تُنسى.
-              </p>
+          <div className="max-w-xl">
+            <div className="flex flex-col gap-5 lg:gap-6">
+              <BrandLogo
+                priority
+                src={atharLogoTransparent}
+                className="self-start"
+                imgClassName="h-28 w-28 sm:h-32 sm:w-32 lg:h-40 lg:w-40"
+              />
+              <div className="space-y-4">
+                <h1 className="font-display text-4xl font-semibold leading-[1.25] text-brown sm:text-5xl lg:text-[3.25rem]">
+                  أناقة تترك أثرًا
+                </h1>
+                <p className="max-w-md text-base leading-8 text-mocha sm:text-lg">
+                  حقائب وإكسسوارات مصرية بروح أنثوية راقية — تفاصيل دافئة، حضور هادئ، ولمسة لا تُنسى.
+                </p>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
                 <Link to="/products">
                   تسوقي الآن
