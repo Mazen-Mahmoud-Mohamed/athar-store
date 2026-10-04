@@ -52,7 +52,8 @@ export function validateCheckoutPayload(input: {
   if (!phoneRaw) {
     errors.phone = 'رقم الهاتف مطلوب.'
   } else if (!isValidEgyptianPhone(phoneRaw)) {
-    errors.phone = 'أدخلي رقم هاتف مصري صحيح (مثال: 01xxxxxxxxx).'
+    errors.phone =
+      'أدخلي رقم هاتف مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015 (مثال: 01012345678).'
   }
 
   if (!address) {

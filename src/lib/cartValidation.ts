@@ -6,6 +6,7 @@ export type CartLineIssue =
   | 'out_of_stock'
   | 'insufficient_stock'
   | 'price_changed'
+  | 'check_failed'
 
 export type CartValidationLine = {
   productId: string
@@ -139,13 +140,15 @@ export async function validateCartForCheckout(items: CartItem[]): Promise<CartVa
         slug: product.slug,
       })
     } catch {
+      // Keep the line so a transient network error does not silently drop products.
       const line: CartValidationLine = {
         productId: item.productId,
-        issue: 'inactive',
-        message: `تعذر التحقق من "${item.name}". حاولي مرة أخرى.`,
+        issue: 'check_failed',
+        message: `تعذر التحقق من "${item.name}". تحققي من الاتصال ثم حاولي مرة أخرى.`,
       }
       lines.push(line)
       messages.push(line.message!)
+      syncedItems.push({ ...item })
     }
   }
 
@@ -154,11 +157,12 @@ export async function validateCartForCheckout(items: CartItem[]): Promise<CartVa
       line.issue === 'inactive' ||
       line.issue === 'out_of_stock' ||
       line.issue === 'insufficient_stock' ||
-      line.issue === 'price_changed',
+      line.issue === 'price_changed' ||
+      line.issue === 'check_failed',
   )
 
   return {
-    ok: !blocking && syncedItems.length === items.length,
+    ok: !blocking && syncedItems.length > 0,
     lines,
     syncedItems,
     messages,

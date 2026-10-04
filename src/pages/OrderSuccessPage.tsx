@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { BrandLogo } from '@/components/BrandLogo'
 import { WhatsAppCta } from '@/components/ContactLinks'
@@ -6,7 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { whatsappOrderFollowUpUrl } from '@/config/contact'
 import { formatPrice } from '@/lib/utils'
-import type { GuestOrderConfirmation } from '@/services/orderService'
+import {
+  readRememberedGuestOrderConfirmation,
+  type GuestOrderConfirmation,
+} from '@/services/orderService'
 
 type SuccessLocationState = {
   confirmation?: GuestOrderConfirmation
@@ -14,7 +18,18 @@ type SuccessLocationState = {
 
 export function OrderSuccessPage() {
   const location = useLocation()
-  const confirmation = (location.state as SuccessLocationState | null)?.confirmation
+  const confirmation = useMemo(() => {
+    const fromNav = (location.state as SuccessLocationState | null)?.confirmation
+    if (
+      fromNav &&
+      typeof fromNav.reference === 'string' &&
+      typeof fromNav.total === 'number' &&
+      Number.isFinite(fromNav.total)
+    ) {
+      return fromNav
+    }
+    return readRememberedGuestOrderConfirmation()
+  }, [location.state])
 
   return (
     <>
@@ -44,11 +59,13 @@ export function OrderSuccessPage() {
                 {confirmation.customerName ? (
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <dt className="text-mocha">الاسم</dt>
-                    <dd className="font-medium text-brown">{confirmation.customerName}</dd>
+                    <dd className="break-words font-medium text-brown">
+                      {confirmation.customerName}
+                    </dd>
                   </div>
                 ) : null}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <dt className="text-mocha">الإجمالي</dt>
+                  <dt className="text-mocha">الإجمالي المؤكد</dt>
                   <dd className="font-semibold text-brown">{formatPrice(confirmation.total)}</dd>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -61,15 +78,15 @@ export function OrderSuccessPage() {
                 <>
                   <Separator className="my-4" />
                   <ul className="space-y-2 text-sm">
-                    {confirmation.items.map((item) => (
+                    {confirmation.items.map((item, index) => (
                       <li
-                        key={`${item.productName}-${item.quantity}-${item.unitPrice}`}
+                        key={`${item.productName}-${item.quantity}-${item.unitPrice}-${index}`}
                         className="flex justify-between gap-3"
                       >
-                        <span className="text-mocha">
+                        <span className="min-w-0 break-words text-mocha">
                           {item.productName} × {item.quantity}
                         </span>
-                        <span>{formatPrice(item.subtotal)}</span>
+                        <span className="shrink-0">{formatPrice(item.subtotal)}</span>
                       </li>
                     ))}
                   </ul>
@@ -78,15 +95,15 @@ export function OrderSuccessPage() {
             </div>
           ) : (
             <p className="mt-6 rounded-xl border border-dashed border-taupe/45 bg-card/70 px-4 py-5 text-sm leading-7 text-mocha">
-              إذا وصلتِ إلى هذه الصفحة بعد تحديث المتصفح، فطلبكِ لا يُعاد إرساله تلقائياً.
-              احتفظي برقم الطلب من رسالة التأكيد إن وُجد، أو تواصلي معنا عبر واتساب.
+              إذا وصلتِ إلى هذه الصفحة مباشرة أو بعد تحديث المتصفح دون بيانات طلب محفوظة، فلن يُعاد
+              إرسال أي طلب تلقائياً. إن كان لديكِ رقم طلب، تواصلي معنا عبر واتساب للمتابعة.
             </p>
           )}
 
           <div className="mt-8 space-y-3 text-sm leading-7 text-mocha">
             <p className="font-medium text-brown">ماذا بعد؟</p>
             <p>نراجع طلبكِ ونتواصل لتأكيد التوفر وموعد التوصيل.</p>
-            <p>الدفع عند الاستلام — بدون رسوم إضافية ظاهرة عند الطلب.</p>
+            <p>الدفع عند الاستلام — لم يتم تحصيل أي دفعة إلكترونية عبر الموقع.</p>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

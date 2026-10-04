@@ -32,12 +32,68 @@ export type GuestOrderConfirmation = {
   subtotal: number
   total: number
   items: Array<{
-    productId?: string
     productName: string
     unitPrice: number
     quantity: number
     subtotal: number
   }>
+}
+
+const LAST_ORDER_STORAGE_KEY = 'athar-last-order-confirmation'
+
+/** Persist a successful confirmation for safe refresh of /order-success (same tab). */
+export function rememberGuestOrderConfirmation(confirmation: GuestOrderConfirmation) {
+  try {
+    sessionStorage.setItem(
+      LAST_ORDER_STORAGE_KEY,
+      JSON.stringify({
+        reference: confirmation.reference,
+        status: confirmation.status,
+        customerName: confirmation.customerName,
+        subtotal: confirmation.subtotal,
+        total: confirmation.total,
+        items: confirmation.items,
+        // Keep id only for same-tab refresh continuity; never shown in UI.
+        id: confirmation.id,
+      } satisfies GuestOrderConfirmation),
+    )
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+export function readRememberedGuestOrderConfirmation(): GuestOrderConfirmation | null {
+  try {
+    const raw = sessionStorage.getItem(LAST_ORDER_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<GuestOrderConfirmation>
+    if (
+      typeof parsed.reference !== 'string' ||
+      typeof parsed.total !== 'number' ||
+      !Number.isFinite(parsed.total) ||
+      typeof parsed.id !== 'string'
+    ) {
+      return null
+    }
+    return {
+      id: parsed.id,
+      reference: parsed.reference,
+      status: 'pending',
+      customerName: typeof parsed.customerName === 'string' ? parsed.customerName : '',
+      subtotal: typeof parsed.subtotal === 'number' ? parsed.subtotal : parsed.total,
+      total: parsed.total,
+      items: Array.isArray(parsed.items)
+        ? parsed.items.map((item) => ({
+            productName: String(item?.productName ?? 'منتج'),
+            unitPrice: Number(item?.unitPrice ?? 0),
+            quantity: Number(item?.quantity ?? 0),
+            subtotal: Number(item?.subtotal ?? 0),
+          }))
+        : [],
+    }
+  } catch {
+    return null
+  }
 }
 
 export type AdminOrderListItem = Order & {
@@ -84,25 +140,42 @@ function mapOrderRpcError(error: unknown): AppError | null {
   const message = String((error as { message?: string }).message ?? '')
 
   if (/PRODUCT_UNAVAILABLE|Product unavailable/i.test(message)) {
-    return new AppError('validation', 'أحد المنتجات لم يعد متاحًا.', { cause: error })
+    return new AppError(
+      'validation',
+      'أحد المنتجات لم يعد متاحًا. راجعي السلة ثم حاولي مرة أخرى.',
+      { cause: error },
+    )
   }
   if (/INSUFFICIENT_STOCK|Insufficient stock/i.test(message)) {
-    return new AppError('validation', 'الكمية المطلوبة غير متوفرة حاليًا.', { cause: error })
+    return new AppError(
+      'validation',
+      'الكمية المطلوبة غير متوفرة حاليًا. راجعي السلة ثم حاولي مرة أخرى.',
+      { cause: error },
+    )
   }
   if (/ORDER_EMPTY|at least one item/i.test(message)) {
-    return new AppError('validation', 'السلة فارغة.', { cause: error })
+    return new AppError('validation', 'السلة فارغة. أضيفي منتجًا قبل إتمام الطلب.', {
+      cause: error,
+    })
   }
   if (/CUSTOMER_NAME_REQUIRED|Customer name/i.test(message)) {
-    return new AppError('validation', 'من فضلك تأكدي من بيانات الطلب.', { cause: error })
+    return new AppError('validation', 'من فضلك تأكدي من الاسم بالكامل.', { cause: error })
   }
   if (/PHONE_REQUIRED|Phone is required/i.test(message)) {
-    return new AppError('validation', 'من فضلك تأكدي من بيانات الطلب.', { cause: error })
+    return new AppError('validation', 'من فضلك تأكدي من رقم الهاتف.', { cause: error })
   }
   if (/ADDRESS_REQUIRED|Address is required/i.test(message)) {
-    return new AppError('validation', 'من فضلك تأكدي من بيانات الطلب.', { cause: error })
+    return new AppError('validation', 'من فضلك تأكدي من عنوان التوصيل.', { cause: error })
   }
-  if (/NOTES_TOO_LONG|INVALID_QUANTITY|PRODUCT_ID_REQUIRED/i.test(message)) {
-    return new AppError('validation', 'من فضلك تأكدي من بيانات الطلب.', { cause: error })
+  if (/NOTES_TOO_LONG/i.test(message)) {
+    return new AppError('validation', 'الملاحظات طويلة جدًا. اختصريها ثم حاولي مرة أخرى.', {
+      cause: error,
+    })
+  }
+  if (/INVALID_QUANTITY|PRODUCT_ID_REQUIRED/i.test(message)) {
+    return new AppError('validation', 'تعذر التحقق من محتويات السلة. راجعي السلة ثم حاولي مرة أخرى.', {
+      cause: error,
+    })
   }
 
   return null
@@ -134,52 +207,37 @@ function mapAdminStatusRpcError(error: unknown): AppError | null {
 
 function parseConfirmation(
   data: unknown,
-  fallback?: { customerName: string; items: CartItem[] },
+  fallback?: { customerName: string },
 ): GuestOrderConfirmation {
-  if (typeof data === 'string') {
-    if (!fallback?.items.length) {
-      throw new AppError('database', 'حدث خطأ أثناء إرسال الطلب. حاولي مرة أخرى.')
-    }
-    const subtotal = fallback.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    )
-    return {
-      id: data,
-      reference: formatOrderReference(data),
-      status: 'pending',
-      customerName: fallback.customerName,
-      subtotal,
-      total: subtotal,
-      items: fallback.items.map((item) => ({
-        productId: item.productId,
-        productName: item.name,
-        unitPrice: item.price,
-        quantity: item.quantity,
-        subtotal: item.price * item.quantity,
-      })),
-    }
-  }
-
+  // Only accept the server confirmation object from create_guest_order.
+  // Never invent totals from the client cart.
   if (!data || typeof data !== 'object') {
-    throw new AppError('database', 'حدث خطأ أثناء إرسال الطلب. حاولي مرة أخرى.')
+    throw new AppError('database', 'تعذر تأكيد الطلب من الخادم. حاولي مرة أخرى.')
   }
 
   const row = data as Record<string, unknown>
   const id = String(row.id ?? '')
   if (!id) {
-    throw new AppError('database', 'حدث خطأ أثناء إرسال الطلب. حاولي مرة أخرى.')
+    throw new AppError('database', 'تعذر تأكيد الطلب من الخادم. حاولي مرة أخرى.')
+  }
+
+  const subtotal = mapMoney((row.subtotal as number | string) ?? Number.NaN)
+  const total = mapMoney((row.total as number | string) ?? Number.NaN)
+  if (!Number.isFinite(subtotal) || !Number.isFinite(total) || total < 0) {
+    throw new AppError('database', 'تعذر تأكيد إجمالي الطلب من الخادم. حاولي مرة أخرى.')
   }
 
   const rawItems = Array.isArray(row.items) ? row.items : []
   const items = rawItems.map((item) => {
     const line = item as Record<string, unknown>
+    const unitPrice = mapMoney((line.unit_price as number | string) ?? 0)
+    const quantity = Number(line.quantity ?? 0)
+    const lineSubtotal = mapMoney((line.subtotal as number | string) ?? 0)
     return {
-      productId: line.product_id ? String(line.product_id) : undefined,
-      productName: String(line.product_name ?? ''),
-      unitPrice: mapMoney((line.unit_price as number | string) ?? 0),
-      quantity: Number(line.quantity ?? 0),
-      subtotal: mapMoney((line.subtotal as number | string) ?? 0),
+      productName: String(line.product_name ?? 'منتج'),
+      unitPrice,
+      quantity,
+      subtotal: lineSubtotal,
     }
   })
 
@@ -188,8 +246,8 @@ function parseConfirmation(
     reference: formatOrderReference(id),
     status: 'pending',
     customerName: String(row.customer_name ?? fallback?.customerName ?? ''),
-    subtotal: mapMoney((row.subtotal as number | string) ?? 0),
-    total: mapMoney((row.total as number | string) ?? 0),
+    subtotal,
+    total,
     items,
   }
 }
@@ -262,7 +320,6 @@ export async function createOrder(
 
     return parseConfirmation(data, {
       customerName: payload.customerName,
-      items,
     })
   } catch (error) {
     if (error instanceof AppError) throw error

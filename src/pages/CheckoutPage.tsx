@@ -14,10 +14,19 @@ import {
   type CheckoutFieldErrors,
   validateCheckoutPayload,
 } from '@/lib/checkoutValidation'
-import { getErrorMessage } from '@/lib/errors'
+import { AppError, getErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/utils'
-import { createOrder } from '@/services/orderService'
+import { createOrder, rememberGuestOrderConfirmation } from '@/services/orderService'
 import { toast } from 'sonner'
+
+function RequiredMark() {
+  return (
+    <span className="text-danger" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  )
+}
 
 export function CheckoutPage() {
   const navigate = useNavigate()
@@ -32,6 +41,7 @@ export function CheckoutPage() {
   const [needsReview, setNeedsReview] = useState(false)
   const [checkingCart, setCheckingCart] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const submitLock = useRef(false)
 
   const nameRef = useRef<HTMLInputElement>(null)
@@ -81,6 +91,11 @@ export function CheckoutPage() {
       setCheckingCart(true)
       try {
         await applyCartValidation()
+      } catch {
+        if (active) {
+          setCartMessages(['تعذر التحقق من السلة حالياً. حاولي مرة أخرى.'])
+          setNeedsReview(true)
+        }
       } finally {
         if (active) setCheckingCart(false)
       }
@@ -121,9 +136,42 @@ export function CheckoutPage() {
     else if (errors.notes) notesRef.current?.focus()
   }
 
+  function clearFieldError(field: keyof CheckoutFieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
+  async function acknowledgeCartReview() {
+    setCheckingCart(true)
+    try {
+      const result = await applyCartValidation()
+      if (result.ok) {
+        setNeedsReview(false)
+        setCartMessages([])
+        setSubmitError(null)
+      } else {
+        setCartMessages(result.messages)
+        setNeedsReview(true)
+        toast.error(
+          result.messages[0] ?? 'ما زالت هناك تحديثات على السلة تحتاج مراجعتك.',
+        )
+      }
+    } catch {
+      toast.error('تعذر التحقق من السلة حالياً. حاولي مرة أخرى.')
+    } finally {
+      setCheckingCart(false)
+    }
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitLock.current || submitting || needsReview) return
+    if (submitLock.current || submitting || needsReview || checkingCart) return
+
+    setSubmitError(null)
 
     const validated = validateCheckoutPayload({
       customerName,
@@ -135,7 +183,9 @@ export function CheckoutPage() {
     if (!validated.ok) {
       setFieldErrors(validated.errors)
       focusFirstError(validated.errors)
-      toast.error('من فضلك تأكدي من بيانات الطلب.')
+      const message = 'من فضلك تأكدي من بيانات الطلب.'
+      setSubmitError(message)
+      toast.error(message)
       return
     }
 
@@ -146,24 +196,45 @@ export function CheckoutPage() {
     try {
       const cartCheck = await applyCartValidation(items)
       if (!cartCheck.ok) {
-        toast.error(
+        const message =
           cartCheck.messages[0] ??
-            'تم تحديث السلة. راجعي المنتجات ثم أكّدي الطلب مرة أخرى.',
-        )
+          'تم تحديث السلة. راجعي المنتجات ثم أكّدي الطلب مرة أخرى.'
+        setSubmitError(message)
+        toast.error(message)
         return
       }
 
       const confirmation = await createOrder(validated.payload, cartCheck.syncedItems)
+      rememberGuestOrderConfirmation(confirmation)
       clearCart()
       toast.success('تم استلام طلبك بنجاح')
+      // Keep submit locked after success so a late double-click cannot re-fire.
       navigate('/order-success', { state: { confirmation }, replace: true })
     } catch (error) {
-      toast.error(getErrorMessage(error, 'حدث خطأ أثناء إرسال الطلب. حاولي مرة أخرى.'))
-    } finally {
+      const message = getErrorMessage(error, 'حدث خطأ أثناء إرسال الطلب. حاولي مرة أخرى.')
+      setSubmitError(message)
+      toast.error(message)
+
+      const shouldRevalidate =
+        error instanceof AppError &&
+        (error.code === 'validation' ||
+          /متاح|المخزون|السلة|الكمية|المنتج/i.test(error.message))
+
+      if (shouldRevalidate) {
+        try {
+          await applyCartValidation()
+        } catch {
+          // Keep the original friendly error visible.
+        }
+      }
+
       submitLock.current = false
       setSubmitting(false)
     }
   }
+
+  const submitDisabled =
+    submitting || checkingCart || needsReview || items.length === 0
 
   return (
     <>
@@ -173,15 +244,15 @@ export function CheckoutPage() {
         path="/checkout"
         noIndex
       />
-      <div className="container-athar py-10 sm:py-14" aria-busy={checkingCart}>
+      <div className="container-athar py-10 sm:py-14" aria-busy={checkingCart || submitting}>
         <div className="mb-8">
           <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">الدفع عند الاستلام</p>
           <h1 className="font-display text-3xl font-semibold">إتمام الطلب</h1>
           <p className="mt-2 text-sm text-mocha">
-            أدخلي بياناتك وسنؤكد الطلب عبر الهاتف أو واتساب.
+            أدخلي بياناتك وسنؤكد الطلب عبر الهاتف أو واتساب. لا يتم تحصيل أي دفعة إلكترونية الآن.
           </p>
           {checkingCart ? (
-            <p className="mt-2 text-xs text-mocha" role="status">
+            <p className="mt-2 text-xs text-mocha" role="status" aria-live="polite">
               جارٍ التحقق من توفر المنتجات…
             </p>
           ) : null}
@@ -207,9 +278,9 @@ export function CheckoutPage() {
               <Button
                 type="button"
                 size="sm"
+                disabled={checkingCart || submitting}
                 onClick={() => {
-                  setNeedsReview(false)
-                  setCartMessages([])
+                  void acknowledgeCartReview()
                 }}
               >
                 راجعتُ التحديثات، متابعة
@@ -225,18 +296,32 @@ export function CheckoutPage() {
           className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]"
         >
           <div className="space-y-5 rounded-xl border border-taupe/30 bg-card p-5 sm:p-6">
-            <h2 className="font-display text-lg font-semibold">بيانات التوصيل</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-lg font-semibold">بيانات التوصيل</h2>
+              <p className="text-xs text-mocha">
+                الحقول المميزة بـ <span className="text-danger">*</span> مطلوبة
+              </p>
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="customerName">الاسم بالكامل</Label>
+              <Label htmlFor="customerName">
+                الاسم بالكامل
+                <RequiredMark />
+              </Label>
               <Input
                 ref={nameRef}
                 id="customerName"
                 name="customerName"
                 autoComplete="name"
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => {
+                  setCustomerName(e.target.value)
+                  clearFieldError('customerName')
+                }}
                 placeholder="اسمكِ الكريم"
+                maxLength={80}
+                required
+                aria-required="true"
                 aria-invalid={Boolean(fieldErrors.customerName)}
                 aria-describedby={fieldErrors.customerName ? 'customerName-error' : undefined}
                 disabled={submitting}
@@ -249,7 +334,10 @@ export function CheckoutPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">رقم الهاتف</Label>
+              <Label htmlFor="phone">
+                رقم الهاتف
+                <RequiredMark />
+              </Label>
               <Input
                 ref={phoneRef}
                 id="phone"
@@ -258,12 +346,18 @@ export function CheckoutPage() {
                 inputMode="tel"
                 autoComplete="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value)
+                  clearFieldError('phone')
+                }}
                 placeholder="01xxxxxxxxx"
+                maxLength={16}
                 dir="ltr"
                 className="text-start"
+                required
+                aria-required="true"
                 aria-invalid={Boolean(fieldErrors.phone)}
-                aria-describedby={fieldErrors.phone ? 'phone-error' : undefined}
+                aria-describedby={fieldErrors.phone ? 'phone-error' : 'phone-hint'}
                 disabled={submitting}
               />
               {fieldErrors.phone ? (
@@ -271,23 +365,35 @@ export function CheckoutPage() {
                   {fieldErrors.phone}
                 </p>
               ) : (
-                <p className="text-xs text-mocha">رقم تواصلكِ — وليس رقم متجر أثر.</p>
+                <p id="phone-hint" className="text-xs text-mocha">
+                  رقم تواصلكِ المصري — وليس رقم متجر أثر.
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">العنوان بالتفصيل</Label>
+              <Label htmlFor="address">
+                العنوان بالتفصيل
+                <RequiredMark />
+              </Label>
               <Textarea
                 ref={addressRef}
                 id="address"
                 name="address"
                 autoComplete="street-address"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => {
+                  setAddress(e.target.value)
+                  clearFieldError('address')
+                }}
                 placeholder="المحافظة، المدينة، الشارع، رقم المبنى، علامة مميزة"
+                maxLength={300}
+                required
+                aria-required="true"
                 aria-invalid={Boolean(fieldErrors.address)}
                 aria-describedby={fieldErrors.address ? 'address-error' : undefined}
                 disabled={submitting}
+                className="min-h-[6.5rem]"
               />
               {fieldErrors.address ? (
                 <p id="address-error" className="text-xs text-danger" role="alert">
@@ -303,7 +409,10 @@ export function CheckoutPage() {
                 id="notes"
                 name="notes"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => {
+                  setNotes(e.target.value)
+                  clearFieldError('notes')
+                }}
                 placeholder="أي تفاصيل إضافية للتوصيل"
                 maxLength={500}
                 aria-invalid={Boolean(fieldErrors.notes)}
@@ -335,7 +444,7 @@ export function CheckoutPage() {
                           src={thumb.src}
                           srcSet={thumb.srcSet}
                           sizes={thumb.sizes}
-                          alt={item.name}
+                          alt=""
                           width={thumb.width}
                           height={thumb.height}
                           className="h-full w-full object-cover"
@@ -350,7 +459,7 @@ export function CheckoutPage() {
                     })()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-brown">{item.name}</p>
+                    <p className="break-words font-medium text-brown">{item.name}</p>
                     <p className="mt-1 text-xs text-mocha">
                       {formatPrice(item.price)} × {item.quantity}
                     </p>
@@ -361,28 +470,46 @@ export function CheckoutPage() {
             </ul>
             <Separator className="my-4" />
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span className="text-mocha">المجموع الفرعي</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              <div className="flex justify-between text-base font-semibold">
+              <div className="flex justify-between gap-3 text-base font-semibold">
                 <span>الإجمالي</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <p className="text-xs leading-6 text-mocha">
-                السعر النهائي يُؤكد من الخادم عند إرسال الطلب.
+                السعر النهائي يُؤكد من الخادم عند إرسال الطلب. الدفع عند الاستلام.
               </p>
             </div>
+
+            {submitError ? (
+              <p
+                id="checkout-submit-error"
+                className="mt-4 break-words rounded-md border border-danger/25 bg-danger/5 px-3 py-2 text-xs leading-6 text-danger"
+                role="alert"
+                aria-live="assertive"
+              >
+                {submitError}
+              </p>
+            ) : null}
 
             <Button
               type="submit"
               className="mt-6 w-full"
               size="lg"
-              disabled={submitting || checkingCart || needsReview || items.length === 0}
+              disabled={submitDisabled}
               aria-busy={submitting}
+              aria-describedby={submitError ? 'checkout-submit-error' : undefined}
             >
               {submitting ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
             </Button>
+
+            {submitting ? (
+              <p className="mt-2 text-center text-xs text-mocha" role="status" aria-live="polite">
+                يرجى الانتظار — لا تغلقي الصفحة أثناء إرسال الطلب.
+              </p>
+            ) : null}
 
             {needsReview ? (
               <p className="mt-3 text-center text-xs text-danger">

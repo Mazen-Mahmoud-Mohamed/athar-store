@@ -16,6 +16,7 @@ type LineStatus = {
   inactive: boolean
   outOfStock: boolean
   priceChanged: boolean
+  checkFailed: boolean
   livePrice: number | null
   maxStock: number
   checking: boolean
@@ -26,6 +27,7 @@ const defaultStatus = (): LineStatus => ({
   inactive: false,
   outOfStock: false,
   priceChanged: false,
+  checkFailed: false,
   livePrice: null,
   maxStock: 99,
   checking: true,
@@ -65,6 +67,7 @@ export function CartPage() {
                   inactive: true,
                   outOfStock: false,
                   priceChanged: false,
+                  checkFailed: false,
                   livePrice: null,
                   maxStock: 0,
                   checking: false,
@@ -98,6 +101,7 @@ export function CartPage() {
                 inactive: false,
                 outOfStock,
                 priceChanged,
+                checkFailed: false,
                 livePrice: product.price,
                 maxStock: product.stock_quantity,
                 checking: false,
@@ -108,9 +112,10 @@ export function CartPage() {
               item.productId,
               {
                 available: false,
-                inactive: true,
+                inactive: false,
                 outOfStock: false,
                 priceChanged: false,
+                checkFailed: true,
                 livePrice: null,
                 maxStock: 0,
                 checking: false,
@@ -148,7 +153,7 @@ export function CartPage() {
       items.some((item) => {
         const status = statuses[item.productId]
         if (!status) return true
-        return !status.available || status.inactive
+        return !status.available || status.inactive || status.checkFailed
       }),
     [items, statuses, isChecking],
   )
@@ -253,6 +258,11 @@ export function CartPage() {
                           {status?.outOfStock ? (
                             <p className="mt-1 text-xs text-danger">
                               نفد المخزون حالياً — لا يمكن إتمام الطلب بهذا المنتج.
+                            </p>
+                          ) : null}
+                          {status?.checkFailed ? (
+                            <p className="mt-1 text-xs text-danger">
+                              تعذر التحقق من توفر هذا المنتج. تحققي من الاتصال ثم أعيدي المحاولة.
                             </p>
                           ) : null}
                         </div>
