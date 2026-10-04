@@ -2,7 +2,10 @@
 
 @theme {
   --font-sans: "IBM Plex Sans Arabic", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  /* UI / geometric headings (nav, products, admin, utility) */
   --font-display: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  /* Editorial Arabic display — Ruqaa calligraphy accent */
+  --font-calligraphy: "Aref Ruqaa", "Amiri", "Cairo", serif;
 
   /* Brand palette — derived from أثر logo */
   --color-cream: #fbf8f3;
