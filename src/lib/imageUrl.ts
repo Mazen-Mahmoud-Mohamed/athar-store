@@ -38,7 +38,8 @@ const PRESETS: Record<
   detail: {
     widths: [720, 960, 1200],
     quality: 85,
-    sizes: '(max-width: 1024px) 100vw, 560px',
+    // Product details gallery column ≈ half viewport on desktop; full width on mobile.
+    sizes: '(max-width: 1024px) 100vw, min(560px, 46vw)',
     widthAttr: 960,
     heightAttr: 1200,
   },

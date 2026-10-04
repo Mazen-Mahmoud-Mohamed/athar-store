@@ -12,9 +12,12 @@ import {
   ProductDetailsSkeleton,
 } from '@/features/catalog/CatalogStates'
 import { ProductCard } from '@/features/products/ProductCard'
+import {
+  ProductGallery,
+  resolveProductGalleryImages,
+} from '@/features/products/ProductGallery'
 import { useCart } from '@/features/cart/cart-context'
 import { getErrorMessage } from '@/lib/errors'
-import { catalogImageProps } from '@/lib/imageUrl'
 import { productBreadcrumbs, productSchema } from '@/lib/seoSchema'
 import { calcDiscountPercent, formatPrice } from '@/lib/utils'
 import { getProductById, getProductBySlug, getProductsByCategory } from '@/services/productService'
@@ -41,7 +44,6 @@ export function ProductDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [imgMode, setImgMode] = useState<'optimized' | 'original' | 'failed'>('optimized')
   const [addedFlash, setAddedFlash] = useState(false)
 
   useEffect(() => {
@@ -51,7 +53,6 @@ export function ProductDetailsPage() {
       setLoading(true)
       setNotFound(false)
       setQty(1)
-      setImgMode('optimized')
       try {
         const found = await resolveProduct(routeParam)
         if (!active) return
@@ -146,12 +147,7 @@ export function ProductDetailsPage() {
   const discount = calcDiscountPercent(current.price, current.old_price)
   const outOfStock = current.stock_quantity <= 0
   const maxQty = Math.max(current.stock_quantity, 0)
-  const detailImage =
-    imgMode === 'failed' || !current.image_url
-      ? null
-      : imgMode === 'original'
-        ? { src: current.image_url, width: 960, height: 1200 }
-        : catalogImageProps(current.image_url, 'detail')
+  const galleryImages = resolveProductGalleryImages(current.image_url)
   const description = truncateMeta(
     current.description?.trim() ||
       `${current.name} من أثر — حقائب وشنط وإكسسوارات أنيقة.`,
@@ -222,33 +218,11 @@ export function ProductDetailsPage() {
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-          <div className="overflow-hidden rounded-xl bg-mist">
-            <div className="aspect-[4/5]">
-              {detailImage ? (
-                <img
-                  src={detailImage.src}
-                  srcSet={'srcSet' in detailImage ? detailImage.srcSet : undefined}
-                  sizes={'sizes' in detailImage ? detailImage.sizes : undefined}
-                  alt={current.name}
-                  width={detailImage.width}
-                  height={detailImage.height}
-                  fetchPriority="high"
-                  decoding="async"
-                  className="h-full w-full object-cover"
-                  onError={() =>
-                    setImgMode((mode) =>
-                      mode === 'optimized' && current.image_url ? 'original' : 'failed',
-                    )
-                  }
-                />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-mist via-ivory to-sand/80">
-                  <span className="font-display text-5xl font-semibold text-brown/20">أثر</span>
-                  <span className="text-xs tracking-[0.25em] text-mocha/40">BAGS</span>
-                </div>
-              )}
-            </div>
-          </div>
+          <ProductGallery
+            key={current.id}
+            images={galleryImages}
+            productName={current.name}
+          />
 
           <div className="flex flex-col gap-5">
             {current.category ? (
