@@ -15,30 +15,20 @@ import {
   formatAdminDateTime,
   orderStatusBadgeVariant,
 } from '@/lib/orderStatus'
-import { formatPrice } from '@/lib/utils'
+import { cn, formatPrice } from '@/lib/utils'
 import {
   adminGetOrderCounts,
   adminListOrders,
-  type AdminOrderCounts,
   type AdminOrderListItem,
 } from '@/services/orderService'
 import type { OrderStatus } from '@/types'
 
 const PAGE_SIZE = 20
 
-const summaryCards: Array<{ key: keyof AdminOrderCounts; label: string }> = [
-  { key: 'total', label: 'إجمالي الطلبات' },
-  { key: 'pending', label: 'جديد' },
-  { key: 'confirmed', label: 'تم التأكيد' },
-  { key: 'preparing', label: 'جاري التجهيز' },
-  { key: 'shipped', label: 'تم الشحن' },
-  { key: 'delivered', label: 'تم التسليم' },
-  { key: 'cancelled', label: 'ملغي' },
-]
-
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrderListItem[]>([])
-  const [counts, setCounts] = useState<AdminOrderCounts | null>(null)
+  const [totalOrders, setTotalOrders] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
@@ -61,7 +51,8 @@ export function AdminOrdersPage() {
       ])
       setOrders(list.orders)
       setTotal(list.total)
-      setCounts(summary)
+      setTotalOrders(summary.total)
+      setPendingCount(summary.pending)
       setError(null)
     } catch (err) {
       setError(getErrorMessage(err, 'تعذر تحميل الطلبات.'))
@@ -99,77 +90,80 @@ export function AdminOrdersPage() {
           description="تابعي طلبات العميلات وحدّثي حالتها بسهولة"
         />
 
-        {counts ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-            {summaryCards.map((card) => (
-              <button
-                key={card.key}
-                type="button"
-                onClick={() => {
-                  if (card.key === 'total') {
-                    setStatusFilter('all')
-                  } else {
-                    setStatusFilter(card.key)
-                  }
-                  setPage(1)
-                }}
-                className="rounded-xl border border-taupe/40 bg-card px-4 py-3 text-start transition hover:border-gold/40"
-              >
-                <p className="text-xs text-mocha">{card.label}</p>
-                <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
-                  {counts[card.key]}
-                </p>
-              </button>
-            ))}
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-xl border border-taupe/40 bg-card px-4 py-3">
+            <p className="text-xs text-mocha">إجمالي الطلبات</p>
+            <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
+              {loading && !totalOrders ? '—' : totalOrders}
+            </p>
           </div>
-        ) : loading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('pending')
+              setPage(1)
+            }}
+            className={cn(
+              'rounded-xl border px-4 py-3 text-start transition',
+              statusFilter === 'pending'
+                ? 'border-2 border-gold-deep/65 bg-gold/30 shadow-soft'
+                : 'border-2 border-gold-deep/40 bg-gold/15 hover:border-gold-deep/60 hover:bg-gold/25',
+            )}
+          >
+            <p className="text-xs font-medium text-espresso">الطلبات الجديدة</p>
+            <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-espresso">
+              {loading && !pendingCount && statusFilter !== 'pending' ? '—' : pendingCount}
+            </p>
+            <p className="mt-1 text-[11px] font-medium text-gold-deep">تحتاج إلى متابعة</p>
+          </button>
+        </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-3">
           <Input
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="ابحث عن طلب..."
-            className="sm:max-w-sm"
+            className="sm:max-w-md"
             aria-label="ابحث عن طلب"
           />
-          <p className="text-xs text-mocha" aria-live="polite">
-            {loading ? 'جارٍ تحميل الطلبات...' : `${total} طلب`}
-          </p>
-        </div>
 
-        <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية حسب الحالة">
-          <Button
-            type="button"
-            size="sm"
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            onClick={() => {
-              setStatusFilter('all')
-              setPage(1)
-            }}
-          >
-            الكل
-          </Button>
-          {ORDER_STATUSES.map((status) => (
+          <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية حسب الحالة">
             <Button
-              key={status}
               type="button"
               size="sm"
-              variant={statusFilter === status ? 'default' : 'outline'}
+              variant={statusFilter === 'all' ? 'default' : 'outline'}
               onClick={() => {
-                setStatusFilter(status)
+                setStatusFilter('all')
                 setPage(1)
               }}
             >
-              {ORDER_STATUS_LABELS[status]}
+              الكل
             </Button>
-          ))}
+            {ORDER_STATUSES.map((status) => (
+              <Button
+                key={status}
+                type="button"
+                size="sm"
+                variant={statusFilter === status ? 'default' : 'outline'}
+                className={
+                  status === 'pending' && statusFilter !== 'pending'
+                    ? 'border-gold-deep/40 text-espresso hover:border-gold-deep/60'
+                    : undefined
+                }
+                onClick={() => {
+                  setStatusFilter(status)
+                  setPage(1)
+                }}
+              >
+                {ORDER_STATUS_LABELS[status]}
+              </Button>
+            ))}
+          </div>
+
+          <p className="text-xs text-mocha" aria-live="polite">
+            {loading ? 'جارٍ تحميل الطلبات...' : `${total} طلب`}
+          </p>
         </div>
 
         {error ? (
@@ -214,7 +208,13 @@ export function AdminOrdersPage() {
                   </tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className="border-t border-taupe/30">
+                    <tr
+                      key={order.id}
+                      className={cn(
+                        'border-t border-taupe/30',
+                        order.status === 'pending' && 'bg-gold/20',
+                      )}
+                    >
                       <td className="px-4 py-3">
                         <span className="font-medium tracking-wide" dir="ltr">
                           {order.reference || formatOrderReference(order.id)}
@@ -259,7 +259,12 @@ export function AdminOrdersPage() {
             orders.map((order) => (
               <article
                 key={order.id}
-                className="rounded-xl border border-taupe/40 bg-card p-4"
+                className={cn(
+                  'rounded-xl border bg-card p-4',
+                  order.status === 'pending'
+                    ? 'border-gold-deep/55 bg-gold/20'
+                    : 'border-taupe/40',
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

@@ -13,7 +13,7 @@ export function isValidSlug(value: string) {
   return slug.length > 0 && slug.length <= 120 && SLUG_PATTERN.test(slug)
 }
 
-export function requireValidSlug(value: string, label = 'المعرّف (Slug)') {
+export function requireValidSlug(value: string, label = 'اسم الرابط') {
   const slug = normalizeSlug(value)
   if (!slug) {
     throw new AppError('validation', `${label} مطلوب.`)
@@ -32,7 +32,7 @@ export function slugFromName(name: string) {
   if (!generated || !isValidSlug(generated)) {
     throw new AppError(
       'validation',
-      'تعذر إنشاء المعرّف من الاسم. أدخلي Slug يدوياً بحروف وأرقام وشرطات.',
+      'تعذر إنشاء اسم الرابط من الاسم. اختاري اسماً أوضح للمنتج أو التصنيف.',
     )
   }
   return generated.toLowerCase()

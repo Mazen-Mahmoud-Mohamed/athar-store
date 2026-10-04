@@ -82,7 +82,12 @@ export function validateCheckoutPayload(input: {
   }
 }
 
+/** Stable human-friendly order code derived from the UUID (presentation only). */
 export function formatOrderReference(orderId: string): string {
-  const compact = orderId.replace(/-/g, '').slice(0, 8).toUpperCase()
-  return `أثر-${compact}`
+  const compact = orderId.replace(/-/g, '').toLowerCase()
+  if (compact.length < 8 || !/^[0-9a-f]+$/.test(compact.slice(0, 8))) {
+    return `أثر-${compact.slice(0, 6).toUpperCase()}`
+  }
+  const n = Number.parseInt(compact.slice(0, 8), 16) % 1_000_000
+  return `أثر-${String(n).padStart(6, '0')}`
 }

@@ -18,6 +18,8 @@ const buttonVariants = cva(
           'bg-transparent text-brown hover:bg-mist',
         soft:
           'bg-mist text-brown hover:bg-sand',
+        danger:
+          'border border-danger/55 bg-danger text-cream hover:bg-danger/90 hover:border-danger',
         link:
           'bg-transparent text-brown underline-offset-4 hover:underline hover:text-gold-deep',
       },

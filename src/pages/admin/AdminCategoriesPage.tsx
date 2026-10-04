@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import { AdminImageUpload } from '@/components/admin/AdminImageUpload'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
@@ -249,7 +250,7 @@ export function AdminCategoriesPage() {
                     <p className="line-clamp-2 text-sm leading-7 text-mocha">{category.description}</p>
                   ) : null}
                   <p className="text-xs text-mocha/70">ترتيب الظهور: {category.sort_order}</p>
-                  <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
                     <Button
                       type="button"
                       size="sm"
@@ -271,8 +272,8 @@ export function AdminCategoriesPage() {
                     <Button
                       type="button"
                       size="sm"
-                      variant="ghost"
-                      className="text-danger hover:text-danger"
+                      variant="danger"
+                      className="ms-auto"
                       disabled={busyId === category.id}
                       onClick={() => setDeleteTarget(category)}
                     >
@@ -342,27 +343,18 @@ export function AdminCategoriesPage() {
               />
               التصنيف متاح في المتجر
             </label>
-            <div className="space-y-2">
-              <Label htmlFor="cat-image">صورة التصنيف (اختياري)</Label>
-              <Input
-                id="cat-image"
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null
-                  setImageFile(file)
-                  if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
-                  setImagePreview(file ? URL.createObjectURL(file) : editing?.image_url ?? null)
-                }}
-              />
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="معاينة التصنيف"
-                  className="mt-2 h-28 w-full rounded-md object-cover"
-                />
-              ) : null}
-            </div>
+            <AdminImageUpload
+              label="صورة التصنيف (اختياري)"
+              helperText="اختيارية — تساعد العميلة على تمييز التصنيف."
+              previewUrl={imagePreview}
+              fileName={imageFile?.name ?? null}
+              previewClassName="h-28 w-full"
+              onFileChange={(file) => {
+                setImageFile(file)
+                if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
+                setImagePreview(file ? URL.createObjectURL(file) : editing?.image_url ?? null)
+              }}
+            />
             <Button type="submit" disabled={saving} className="w-full">
               {saving ? 'جارٍ الحفظ...' : 'حفظ التصنيف'}
             </Button>

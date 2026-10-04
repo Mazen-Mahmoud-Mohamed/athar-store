@@ -149,7 +149,7 @@ export async function adminCreateCategory(input: CategoryInput): Promise<Categor
   const payload = buildCategoryPayload(input)
 
   if (await adminIsCategorySlugTaken(payload.slug)) {
-    throw new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.')
+    throw new AppError('validation', 'اسم الرابط مستخدم بالفعل. اختاري اسماً مختلفاً للتصنيف.')
   }
 
   try {
@@ -171,7 +171,7 @@ export async function adminUpdateCategory(
   const payload = buildCategoryPayload(input)
 
   if (await adminIsCategorySlugTaken(payload.slug, id)) {
-    throw new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.')
+    throw new AppError('validation', 'اسم الرابط مستخدم بالفعل. اختاري اسماً مختلفاً للتصنيف.')
   }
 
   try {

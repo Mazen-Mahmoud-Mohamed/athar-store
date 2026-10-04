@@ -198,15 +198,29 @@ function escapeIlike(value: string) {
   return value.replace(/[%_,]/g, '')
 }
 
-function parseReferenceHex(search: string): string | null {
+type ReferenceQuery =
+  | { kind: 'hex'; value: string }
+  | { kind: 'code'; value: string }
+
+function parseReferenceQuery(search: string): ReferenceQuery | null {
   const trimmed = search.trim()
+  const fromCode = trimmed.match(/^أثر-(\d{4,6})$/i)
+  if (fromCode) return { kind: 'code', value: fromCode[1].padStart(6, '0') }
+  // Legacy hex-style labels (older UI) + raw UUID prefixes.
   const fromLabel = trimmed.match(/^أثر-([0-9a-fA-F]{4,8})$/)
-  if (fromLabel) return fromLabel[1].toLowerCase()
-  if (/^[0-9a-fA-F]{8}$/.test(trimmed)) return trimmed.toLowerCase()
+  if (fromLabel) return { kind: 'hex', value: fromLabel[1].toLowerCase() }
+  if (/^[0-9a-fA-F]{8}$/.test(trimmed)) return { kind: 'hex', value: trimmed.toLowerCase() }
   if (/^[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$/.test(trimmed)) {
-    return trimmed.replace(/-/g, '').slice(0, 8).toLowerCase()
+    return { kind: 'hex', value: trimmed.replace(/-/g, '').slice(0, 8).toLowerCase() }
   }
   return null
+}
+
+function orderMatchesReference(orderId: string, query: ReferenceQuery) {
+  if (query.kind === 'code') {
+    return formatOrderReference(orderId).replace(/^أثر-/, '') === query.value
+  }
+  return orderId.replace(/-/g, '').toLowerCase().startsWith(query.value)
 }
 
 /**
@@ -277,13 +291,13 @@ export async function adminListOrders(
   const to = from + pageSize - 1
   const status = query.status && query.status !== 'all' ? query.status : null
   const search = query.search?.trim() ?? ''
-  const refHex = search ? parseReferenceHex(search) : null
+  const referenceQuery = search ? parseReferenceQuery(search) : null
 
   try {
     const supabase = requireSupabase()
 
     // Reference search: scan a bounded newest window, then paginate in memory.
-    if (refHex) {
+    if (referenceQuery) {
       let refQuery = supabase
         .from('orders')
         .select('*, order_items(count)')
@@ -297,7 +311,7 @@ export async function adminListOrders(
 
       const matched = (data ?? [])
         .map((row) => mapListRow(row))
-        .filter((order) => order.id.replace(/-/g, '').toLowerCase().startsWith(refHex))
+        .filter((order) => orderMatchesReference(order.id, referenceQuery))
 
       const slice = matched.slice(from, from + pageSize)
       return {

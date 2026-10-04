@@ -276,7 +276,7 @@ export async function adminCreateProduct(input: ProductInput): Promise<Product> 
   const payload = buildProductPayload(input)
 
   if (await adminIsProductSlugTaken(payload.slug)) {
-    throw new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.')
+    throw new AppError('validation', 'اسم الرابط مستخدم بالفعل. اختاري اسماً مختلفاً للمنتج.')
   }
 
   try {
@@ -300,7 +300,7 @@ export async function adminUpdateProduct(id: string, input: ProductInput): Promi
   const payload = buildProductPayload(input)
 
   if (await adminIsProductSlugTaken(payload.slug, id)) {
-    throw new AppError('validation', 'هذا المعرّف (Slug) مستخدم بالفعل. اختاري معرّفاً آخر.')
+    throw new AppError('validation', 'اسم الرابط مستخدم بالفعل. اختاري اسماً مختلفاً للمنتج.')
   }
 
   try {

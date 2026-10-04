@@ -49,16 +49,16 @@ export function getAllowedStatusTransitions(current: OrderStatus): OrderStatus[]
 
 export function orderStatusBadgeVariant(
   status: OrderStatus,
-): 'default' | 'gold' | 'soft' | 'outline' | 'danger' {
+): 'default' | 'gold' | 'soft' | 'outline' | 'danger' | 'urgent' {
   switch (status) {
     case 'pending':
-      return 'soft'
+      return 'urgent'
     case 'confirmed':
       return 'outline'
     case 'preparing':
       return 'gold'
     case 'shipped':
-      return 'default'
+      return 'soft'
     case 'delivered':
       return 'outline'
     case 'cancelled':

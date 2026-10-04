@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { OrderStatusStepper } from '@/components/admin/OrderStatusStepper'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -141,6 +142,8 @@ export function AdminOrderDetailsPage() {
           </Button>
         </div>
 
+        <OrderStatusStepper status={order.status} />
+
         <section className="rounded-xl border border-taupe/40 bg-card p-5 sm:p-6">
           <h2 className="font-display text-lg font-semibold">بيانات العميل</h2>
           <dl className="mt-4 space-y-3 text-sm">
@@ -221,7 +224,7 @@ export function AdminOrderDetailsPage() {
                   key={status}
                   type="button"
                   size="sm"
-                  variant={status === 'cancelled' ? 'outline' : 'default'}
+                  variant={status === 'cancelled' ? 'danger' : 'default'}
                   disabled={saving}
                   aria-label={ORDER_STATUS_ACTION_LABELS[status]}
                   onClick={() => requestStatusChange(status)}
@@ -303,6 +306,7 @@ export function AdminOrderDetailsPage() {
             </Button>
             <Button
               type="button"
+              variant="danger"
               disabled={saving || pendingStatus !== 'cancelled'}
               onClick={() => void applyStatus('cancelled')}
             >

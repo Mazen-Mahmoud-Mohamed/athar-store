@@ -6,7 +6,7 @@ function Badge({
   variant = 'default',
   ...props
 }: React.ComponentProps<'span'> & {
-  variant?: 'default' | 'gold' | 'soft' | 'outline' | 'danger'
+  variant?: 'default' | 'gold' | 'soft' | 'outline' | 'danger' | 'urgent'
 }) {
   return (
     <span
@@ -17,6 +17,8 @@ function Badge({
         variant === 'soft' && 'bg-mist text-mocha',
         variant === 'outline' && 'border border-taupe/60 text-mocha',
         variant === 'danger' && 'bg-danger/10 text-danger',
+        variant === 'urgent' &&
+          'bg-gold-deep px-2.5 py-1 text-xs font-bold tracking-wide text-cream shadow-soft',
         className,
       )}
       {...props}

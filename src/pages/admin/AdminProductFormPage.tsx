@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AdminImageUpload } from '@/components/admin/AdminImageUpload'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { PageMeta } from '@/components/seo/PageMeta'
 import { Button } from '@/components/ui/button'
@@ -37,7 +38,7 @@ const emptyForm: FormState = {
   category_id: '',
   price: '',
   old_price: '',
-  stock_quantity: '0',
+  stock_quantity: '',
   is_active: true,
   is_featured: false,
   is_new: false,
@@ -130,6 +131,9 @@ export function AdminProductFormPage() {
       if (oldPrice < Number(form.price)) {
         return 'السعر قبل الخصم يجب أن يكون أكبر من أو يساوي السعر الحالي.'
       }
+    }
+    if (form.stock_quantity.trim() === '') {
+      return 'حددي الكمية المتاحة.'
     }
     const stock = Number(form.stock_quantity)
     if (!Number.isInteger(stock) || stock < 0) {
@@ -306,38 +310,25 @@ export function AdminProductFormPage() {
                 step="1"
                 value={form.stock_quantity}
                 onChange={(e) => setForm((prev) => ({ ...prev, stock_quantity: e.target.value }))}
+                placeholder="مثال: 10"
               />
+              <p className="text-xs text-mocha">كم قطعة متوفرة؟</p>
             </div>
           </section>
 
           <section className="space-y-4 rounded-xl border border-taupe/40 bg-card p-5 sm:p-6">
             <h2 className="font-display text-lg font-semibold">صورة المنتج</h2>
-            <div className="space-y-2">
-              <Label htmlFor="image">{imagePreview ? 'تغيير الصورة' : 'إضافة صورة'}</Label>
-              <Input
-                id="image"
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null
-                  setImageFile(file)
-                  if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
-                  setImagePreview(file ? URL.createObjectURL(file) : product?.image_url ?? null)
-                }}
-              />
-              <p className="text-xs text-mocha">اختاري صورة واضحة للمنتج (حتى 5 ميجابايت).</p>
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="معاينة المنتج"
-                  className="mt-2 aspect-[4/5] max-h-64 w-auto rounded-md object-cover"
-                />
-              ) : (
-                <div className="mt-2 flex aspect-[4/5] max-h-48 w-40 items-center justify-center rounded-md bg-mist text-xs text-mocha">
-                  بلا صورة
-                </div>
-              )}
-            </div>
+            <AdminImageUpload
+              helperText="اختاري صورة واضحة للمنتج (حتى 5 ميجابايت)."
+              previewUrl={imagePreview}
+              fileName={imageFile?.name ?? null}
+              previewClassName="aspect-[4/5] max-h-64 w-auto"
+              onFileChange={(file) => {
+                setImageFile(file)
+                if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
+                setImagePreview(file ? URL.createObjectURL(file) : product?.image_url ?? null)
+              }}
+            />
           </section>
 
           <section className="space-y-4 rounded-xl border border-taupe/40 bg-card p-5 sm:p-6">

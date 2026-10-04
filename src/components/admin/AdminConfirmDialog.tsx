@@ -48,8 +48,7 @@ export function AdminConfirmDialog({
           </Button>
           <Button
             type="button"
-            variant={destructive ? 'outline' : 'default'}
-            className={destructive ? 'border-danger/40 text-danger hover:bg-danger/5' : undefined}
+            variant={destructive ? 'danger' : 'default'}
             disabled={busy}
             onClick={onConfirm}
           >

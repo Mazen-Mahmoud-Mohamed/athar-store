@@ -131,7 +131,7 @@ export function AdminProductsPage() {
   function ProductActions({ product }: { product: Product }) {
     const busy = busyId === product.id
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-2 md:gap-1.5">
         <Button asChild variant="outline" size="sm">
           <Link to={`/admin/products/${product.id}/edit`}>تعديل</Link>
         </Button>
@@ -146,9 +146,9 @@ export function AdminProductsPage() {
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant="danger"
           size="sm"
-          className="text-danger hover:text-danger"
+          className="ms-auto md:ms-1"
           disabled={busy}
           onClick={() => setDeleteTarget(product)}
         >

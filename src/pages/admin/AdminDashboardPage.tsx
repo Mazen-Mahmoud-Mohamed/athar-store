@@ -64,10 +64,15 @@ export function AdminDashboardPage() {
   }, [])
 
   const cards = [
-    { label: 'إجمالي المنتجات', value: stats.products, to: '/admin/products' },
-    { label: 'المنتجات المتاحة', value: stats.available, to: '/admin/products' },
-    { label: 'الطلبات الجديدة', value: stats.pending, to: '/admin/orders' },
-    { label: 'إجمالي الطلبات', value: stats.orders, to: '/admin/orders' },
+    { label: 'إجمالي المنتجات', value: stats.products, to: '/admin/products', emphasize: false },
+    { label: 'المنتجات المتاحة', value: stats.available, to: '/admin/products', emphasize: false },
+    {
+      label: 'الطلبات الجديدة',
+      value: stats.pending,
+      to: '/admin/orders',
+      emphasize: true,
+    },
+    { label: 'إجمالي الطلبات', value: stats.orders, to: '/admin/orders', emphasize: false },
   ]
 
   return (
@@ -103,12 +108,33 @@ export function AdminDashboardPage() {
                 <Link
                   key={stat.label}
                   to={stat.to}
-                  className="rounded-xl border border-taupe/40 bg-card p-5 transition hover:border-gold/40 hover:shadow-soft"
+                  className={
+                    stat.emphasize
+                      ? 'rounded-xl border-2 border-gold-deep/55 bg-gold/25 p-5 shadow-soft transition hover:border-gold-deep/75 hover:bg-gold/30'
+                      : 'rounded-xl border border-taupe/40 bg-card p-5 transition hover:border-gold/40 hover:shadow-soft'
+                  }
                 >
-                  <p className="text-sm text-mocha">{stat.label}</p>
-                  <p className="mt-3 font-display text-3xl font-semibold tabular-nums">
+                  <p
+                    className={
+                      stat.emphasize
+                        ? 'text-sm font-medium text-espresso'
+                        : 'text-sm text-mocha'
+                    }
+                  >
+                    {stat.label}
+                  </p>
+                  <p
+                    className={
+                      stat.emphasize
+                        ? 'mt-3 font-display text-3xl font-semibold tabular-nums text-espresso'
+                        : 'mt-3 font-display text-3xl font-semibold tabular-nums'
+                    }
+                  >
                     {stat.value}
                   </p>
+                  {stat.emphasize ? (
+                    <p className="mt-2 text-xs font-medium text-gold-deep">تحتاج إلى متابعة</p>
+                  ) : null}
                 </Link>
               ))}
         </div>
@@ -152,12 +178,12 @@ export function AdminDashboardPage() {
           ) : attentionOrders.length === 0 ? (
             <AdminEmptyState title="لا توجد طلبات تحتاج إلى متابعة حاليًا" />
           ) : (
-            <ul className="divide-y divide-taupe/30">
+            <ul className="space-y-2">
               {attentionOrders.map((order) => (
                 <li key={order.id}>
                   <Link
                     to={`/admin/orders/${order.id}`}
-                    className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm transition hover:bg-mist/50"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold-deep/45 bg-gold/20 px-3 py-3 text-sm transition hover:border-gold-deep/65 hover:bg-gold/30"
                   >
                     <div className="min-w-0">
                       <p className="font-medium tracking-wide" dir="ltr">
