@@ -12,7 +12,8 @@
   --color-ivory: #f7f1e8;
   --color-sand: #ebe3d6;
   --color-taupe: #c9b8a4;
-  --color-mocha: #8a6f58;
+  /* Slightly deeper for AA contrast of body/muted text on cream. */
+  --color-mocha: #6f5643;
   --color-brown: #4a3728;
   --color-espresso: #2f2118;
   --color-gold: #b8956c;
@@ -64,7 +65,7 @@
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-gold;
+    @apply outline-2 outline-offset-2 outline-brown;
   }
 
   h1,
@@ -80,6 +81,10 @@
 }
 
 @layer utilities {
+  .skip-link {
+    @apply absolute start-4 top-0 z-[100] -translate-y-[120%] rounded-md bg-espresso px-4 py-2.5 text-sm font-medium text-cream shadow-soft transition-transform focus:translate-y-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+
   .container-athar {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
@@ -120,5 +125,14 @@
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

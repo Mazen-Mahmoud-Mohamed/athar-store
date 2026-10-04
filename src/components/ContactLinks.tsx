@@ -30,7 +30,7 @@ export function ContactLinks({
           title={link.label}
           className={cn(
             'inline-flex items-center justify-center rounded-md border border-current/15 transition-colors',
-            compact ? 'size-9' : 'size-10',
+            compact ? 'size-10' : 'size-11',
             iconClassName,
           )}
         >
@@ -44,7 +44,7 @@ export function ContactLinks({
           title={atharContact.phoneDisplay}
           className={cn(
             'inline-flex items-center justify-center rounded-md border border-current/15 transition-colors',
-            compact ? 'size-9' : 'size-10',
+            compact ? 'size-10' : 'size-11',
             iconClassName,
           )}
         >

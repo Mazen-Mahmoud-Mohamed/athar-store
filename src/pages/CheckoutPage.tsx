@@ -123,6 +123,7 @@ export function CheckoutPage() {
             description="أضيفي قطعة إلى السلة ثم عودي لإتمام الطلب."
             actionLabel="تسوقي المنتجات"
             actionTo="/products"
+            titleAs="h1"
           />
         </div>
       </>

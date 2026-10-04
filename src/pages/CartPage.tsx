@@ -274,33 +274,41 @@ export function CartPage() {
                           aria-label={`حذف ${item.name}`}
                           onClick={() => removeItem(item.productId)}
                         >
-                          <Trash2 className="size-4" />
+                          <Trash2 className="size-4" aria-hidden="true" />
                         </Button>
                       </div>
-                      <div className="inline-flex w-fit items-center rounded-md border border-taupe/50">
+                      <div
+                        className="inline-flex w-fit items-center rounded-md border border-taupe/50"
+                        role="group"
+                        aria-label={`كمية ${item.name}`}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="تقليل الكمية"
+                          aria-label={`تقليل كمية ${item.name}`}
                           disabled={blocked}
                           onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                         >
-                          <Minus />
+                          <Minus aria-hidden="true" />
                         </Button>
-                        <span className="min-w-8 text-center text-sm" aria-live="polite">
+                        <span
+                          className="min-w-8 text-center text-sm"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        >
                           {item.quantity}
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="زيادة الكمية"
+                          aria-label={`زيادة كمية ${item.name}`}
                           disabled={
                             blocked ||
                             Boolean(status && item.quantity >= status.maxStock)
                           }
                           onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                         >
-                          <Plus />
+                          <Plus aria-hidden="true" />
                         </Button>
                       </div>
                     </div>

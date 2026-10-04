@@ -5,8 +5,11 @@ import { Footer } from '@/components/layout/Footer'
 export function StoreLayout() {
   return (
     <div className="flex min-h-dvh flex-col surface-paper">
+      <a href="#main-content" className="skip-link">
+        تخطي إلى المحتوى الرئيسي
+      </a>
       <Header />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
       <Footer />

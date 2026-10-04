@@ -36,8 +36,8 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute end-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-gold">
-          <X className="size-4" />
+        <DialogPrimitive.Close className="absolute end-3 top-3 flex size-10 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brown">
+          <X className="size-4" aria-hidden="true" />
           <span className="sr-only">إغلاق</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

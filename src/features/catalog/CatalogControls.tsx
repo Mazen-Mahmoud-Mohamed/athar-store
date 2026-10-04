@@ -63,6 +63,7 @@ function FilterFields({
               type="button"
               size="sm"
               variant={!values.categorySlug ? 'default' : 'outline'}
+              aria-pressed={!values.categorySlug}
               onClick={() => onChange({ ...values, categorySlug: '' })}
             >
               الكل
@@ -73,6 +74,7 @@ function FilterFields({
                 type="button"
                 size="sm"
                 variant={values.categorySlug === category.slug ? 'default' : 'outline'}
+                aria-pressed={values.categorySlug === category.slug}
                 onClick={() => onChange({ ...values, categorySlug: category.slug })}
               >
                 {category.name}
@@ -87,7 +89,7 @@ function FilterFields({
         <select
           value={values.sort}
           onChange={(e) => onChange({ ...values, sort: e.target.value as CatalogSort })}
-          className="flex h-10 w-full rounded-md border border-taupe/45 bg-card px-3 text-sm text-brown focus-visible:outline-2 focus-visible:outline-gold"
+          className="flex h-10 w-full rounded-md border border-taupe/45 bg-card px-3 text-sm text-brown focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brown"
           aria-label="ترتيب المنتجات"
         >
           {SORT_OPTIONS.map((option) => (
@@ -129,6 +131,7 @@ function FilterFields({
             type="button"
             size="sm"
             variant={values.onlyNew ? 'default' : 'outline'}
+            aria-pressed={values.onlyNew}
             onClick={() => onChange({ ...values, onlyNew: !values.onlyNew })}
           >
             جديد
@@ -137,6 +140,7 @@ function FilterFields({
             type="button"
             size="sm"
             variant={values.onlyFeatured ? 'default' : 'outline'}
+            aria-pressed={values.onlyFeatured}
             onClick={() => onChange({ ...values, onlyFeatured: !values.onlyFeatured })}
           >
             مميز
@@ -145,6 +149,7 @@ function FilterFields({
             type="button"
             size="sm"
             variant={values.onlySale ? 'default' : 'outline'}
+            aria-pressed={values.onlySale}
             onClick={() => onChange({ ...values, onlySale: !values.onlySale })}
           >
             عروض
@@ -184,7 +189,7 @@ export function CatalogControls({
         <div className="flex items-center gap-2">
           {hasActiveFilters ? (
             <Button type="button" variant="ghost" size="sm" onClick={onClear}>
-              <X className="size-3.5" />
+              <X className="size-3.5" aria-hidden="true" />
               مسح التصفية
             </Button>
           ) : null}
@@ -192,7 +197,7 @@ export function CatalogControls({
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button type="button" variant="outline" size="sm" className="md:hidden">
-                <Filter className="size-3.5" />
+                <Filter className="size-3.5" aria-hidden="true" />
                 تصفية وترتيب
               </Button>
             </SheetTrigger>

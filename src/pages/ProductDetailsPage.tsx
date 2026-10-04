@@ -297,9 +297,13 @@ export function ProductDetailsPage() {
                   disabled={outOfStock || qty <= 1}
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
                 >
-                  <Minus />
+                  <Minus aria-hidden="true" />
                 </Button>
-                <span className="min-w-10 text-center text-sm font-medium" aria-live="polite">
+                <span
+                  className="min-w-10 text-center text-sm font-medium"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   {qty}
                 </span>
                 <Button
@@ -310,7 +314,7 @@ export function ProductDetailsPage() {
                   disabled={outOfStock || qty >= maxQty}
                   onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
                 >
-                  <Plus />
+                  <Plus aria-hidden="true" />
                 </Button>
               </div>
 
@@ -320,7 +324,7 @@ export function ProductDetailsPage() {
                 disabled={outOfStock}
                 onClick={handleAdd}
               >
-                <ShoppingBag />
+                <ShoppingBag aria-hidden="true" />
                 {addedFlash ? 'تمت الإضافة' : 'أضيفي إلى السلة'}
               </Button>
             </div>

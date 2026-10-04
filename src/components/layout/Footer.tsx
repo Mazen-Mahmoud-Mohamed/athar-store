@@ -33,6 +33,7 @@ export function Footer() {
           <div className="max-w-[15rem] space-y-1.5">
             <BrandLogo
               src={atharLogoTransparent}
+              alt=""
               imgClassName="h-10 w-10 object-contain sm:h-11 sm:w-11"
             />
             <p className="font-display text-[15px] font-semibold leading-none">أثر</p>
@@ -48,9 +49,9 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-gold-soft">
+            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-gold-soft">
               التسوق
-            </h3>
+            </p>
             <ul className="space-y-1">
               <li>
                 <Link
@@ -82,9 +83,9 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-gold-soft">
+            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-gold-soft">
               معلومات
-            </h3>
+            </p>
             <ul className="space-y-1">
               <li>
                 <Link
@@ -106,9 +107,9 @@ export function Footer() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="text-[11px] font-semibold tracking-wide text-gold-soft">
+            <p className="text-[11px] font-semibold tracking-wide text-gold-soft">
               تواصل معنا
-            </h3>
+            </p>
             <div className="space-y-1 text-[12px] leading-[1.35] text-cream/75">
               <p className="flex flex-wrap items-baseline gap-x-2">
                 <span className="text-[10px] tracking-wide text-cream/45">الهاتف</span>

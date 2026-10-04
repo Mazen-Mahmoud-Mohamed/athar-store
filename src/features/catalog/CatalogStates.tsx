@@ -102,6 +102,8 @@ type CatalogEmptyProps = {
   secondaryTo?: string
   /** Visual tone — unavailable is slightly stronger than a calm empty state. */
   tone?: 'empty' | 'unavailable'
+  /** Use h1 when this empty state is the page’s primary heading. */
+  titleAs?: 'h1' | 'h2'
   className?: string
 }
 
@@ -115,8 +117,10 @@ export function CatalogEmpty({
   secondaryLabel,
   secondaryTo,
   tone = 'empty',
+  titleAs = 'h2',
   className,
 }: CatalogEmptyProps) {
+  const TitleTag = titleAs
   return (
     <div
       className={cn(
@@ -128,7 +132,7 @@ export function CatalogEmpty({
       )}
       role={tone === 'unavailable' ? 'status' : undefined}
     >
-      <h2 className="font-display text-xl font-semibold text-brown">{title}</h2>
+      <TitleTag className="font-display text-xl font-semibold text-brown">{title}</TitleTag>
       {description ? (
         <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-mocha">{description}</p>
       ) : null}

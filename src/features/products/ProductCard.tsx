@@ -36,13 +36,13 @@ export function ProductCard({ product, className, priority = false }: ProductCar
       )}
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-mist">
-        <Link to={productPath(product)} className="block h-full w-full" aria-label={product.name}>
+        <Link to={productPath(product)} className="block h-full w-full" tabIndex={-1} aria-hidden="true">
           {image ? (
             <img
               src={image.src}
               srcSet={image.srcSet}
               sizes={image.sizes}
-              alt={product.name}
+              alt=""
               width={image.width}
               height={image.height}
               loading={priority ? 'eager' : 'lazy'}
@@ -56,7 +56,10 @@ export function ProductCard({ product, className, priority = false }: ProductCar
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-mist via-ivory to-sand/80 p-6 text-center">
+            <div
+              className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-mist via-ivory to-sand/80 p-6 text-center"
+              aria-hidden="true"
+            >
               <span className="font-display text-3xl font-semibold text-brown/25">أثر</span>
               <span className="text-xs tracking-[0.2em] text-mocha/50">BAGS</span>
             </div>
@@ -103,7 +106,7 @@ export function ProductCard({ product, className, priority = false }: ProductCar
             variant="soft"
             disabled={outOfStock}
             aria-label={`أضيفي ${product.name} إلى السلة`}
-            className="size-9 shrink-0 sm:size-10"
+            className="size-10 shrink-0 sm:size-11"
             onClick={() =>
               addItem({
                 productId: product.id,
@@ -114,7 +117,7 @@ export function ProductCard({ product, className, priority = false }: ProductCar
               })
             }
           >
-            <ShoppingBag />
+            <ShoppingBag aria-hidden="true" />
           </Button>
         </div>
       </div>

@@ -164,7 +164,7 @@ export function HomePage() {
               <Button asChild size="lg">
                 <Link to="/products">
                   تسوقي الآن
-                  <ArrowLeft className="size-4" />
+                  <ArrowLeft className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">

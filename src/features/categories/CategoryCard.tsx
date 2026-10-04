@@ -46,7 +46,7 @@ export function CategoryCard({ category, productCount, className }: CategoryCard
             src={image.src}
             srcSet={image.srcSet}
             sizes={image.sizes}
-            alt={`تصنيف ${category.name}`}
+            alt=""
             width={image.width}
             height={image.height}
             loading="lazy"
