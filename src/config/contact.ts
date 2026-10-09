@@ -10,7 +10,7 @@ export const atharContact = {
   whatsappUrl: 'https://wa.me/201026278881',
   facebookUrl: 'https://www.facebook.com/profile.php?id=61594972592611',
   instagramUrl: 'https://www.instagram.com/atha.r1797?stkn=cjRzYXFwdGRhMDNo',
-  tiktokUrl: 'https://www.tiktok.com/@rana.omran57?_r=1&_t=ZS-9AEPGgd6eCD',
+  tiktokUrl: 'https://www.tiktok.com/@athar.20271?_r=1&_t=ZS-9AOhNALZH2T',
   /** Visible storefront address — must not include street number "14". */
   addressDisplay:
     'Al-Omda Street, off Mohamed Abdel Zaher, in front of the Walaa neighborhood',
