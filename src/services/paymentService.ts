@@ -112,9 +112,38 @@ function mapStartError(error: unknown): AppError | null {
   return null
 }
 
+export type XPayConfiguredMode = 'test' | 'live'
+
 /**
- * Creates a guest order (server-priced) + XPay Test Hosted Checkout session.
- * Secrets stay on the Edge Function — frontend only receives a checkout URL.
+ * Display-only: reads server XPAY_MODE. Never sent back to create-payment.
+ * Returns null if the function is unreachable or misconfigured.
+ */
+export async function fetchXPayConfiguredMode(): Promise<XPayConfiguredMode | null> {
+  if (!isSupabaseConfigured) return null
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
+  if (!url || !anon) return null
+
+  try {
+    const response = await fetch(`${url.replace(/\/$/, '')}/functions/v1/xpay-payment-status`, {
+      method: 'GET',
+      headers: {
+        apikey: anon,
+        Authorization: `Bearer ${anon}`,
+      },
+    })
+    if (!response.ok) return null
+    const row = (await response.json()) as { mode?: string }
+    if (row?.mode === 'test' || row?.mode === 'live') return row.mode
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Creates a guest order (server-priced) + XPay Hosted Checkout session.
+ * Secrets and XPAY_MODE stay on the Edge Function — frontend cannot override mode.
  */
 export async function startXPayCheckout(
   payload: CheckoutPayload,

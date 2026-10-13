@@ -1,8 +1,8 @@
 import { textResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
-  requireWebhookSecret,
-  verifyXPaySignature,
+  collectWebhookSecrets,
+  verifyXPaySignatureWithSecrets,
   type XPayCheckoutSession,
 } from '../_shared/xpay.ts'
 
@@ -12,12 +12,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const secret = requireWebhookSecret(Deno.env.get('XPAY_WEBHOOK_SECRET'))
+    const secrets = collectWebhookSecrets({
+      primary: Deno.env.get('XPAY_WEBHOOK_SECRET'),
+      secondary: Deno.env.get('XPAY_WEBHOOK_SECRET_SECONDARY'),
+    })
     const rawBody = await req.text()
     const signature =
       req.headers.get('XPay-Signature') ?? req.headers.get('xpay-signature')
 
-    const verified = await verifyXPaySignature(rawBody, signature, secret)
+    const verified = await verifyXPaySignatureWithSecrets(rawBody, signature, secrets)
     if (!verified.valid) {
       console.error('xpay-webhook invalid signature:', verified.reason)
       return textResponse(req, 'invalid signature', 400)

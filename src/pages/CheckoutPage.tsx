@@ -25,9 +25,11 @@ import { AppError, getErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/utils'
 import { createOrder, rememberGuestOrderConfirmation } from '@/services/orderService'
 import {
+  fetchXPayConfiguredMode,
   rememberPendingXPayPayment,
   startXPayCheckout,
   type PaymentMethodChoice,
+  type XPayConfiguredMode,
 } from '@/services/paymentService'
 import type { CartItem } from '@/types'
 import { toast } from 'sonner'
@@ -63,6 +65,7 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodChoice>('cod')
+  const [xpayMode, setXpayMode] = useState<XPayConfiguredMode | null>(null)
   const submitLock = useRef(false)
   const xpayIdempotencyKey = useRef(crypto.randomUUID())
 
@@ -132,6 +135,20 @@ export function CheckoutPage() {
     const intent = readBuyNowIntent()
     setBuyNowItems(intent ? [intent] : [])
   }, [buyNowMode])
+
+  useEffect(() => {
+    let active = true
+    void fetchXPayConfiguredMode()
+      .then((mode) => {
+        if (active) setXpayMode(mode)
+      })
+      .catch(() => {
+        if (active) setXpayMode(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -549,7 +566,9 @@ export function CheckoutPage() {
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-brown">الدفع أونلاين</span>
                     <span className="mt-1 block text-xs leading-6 text-mocha">
-                      الدفع الآمن عبر XPay (وضع الاختبار). سيتم تحويلك لصفحة دفع خارجية.
+                      {xpayMode === 'live'
+                        ? 'الدفع الآمن عبر XPay. سيتم تحويلك لصفحة دفع خارجية.'
+                        : 'الدفع الآمن عبر XPay (وضع الاختبار). سيتم تحويلك لصفحة دفع خارجية.'}
                     </span>
                   </span>
                 </label>

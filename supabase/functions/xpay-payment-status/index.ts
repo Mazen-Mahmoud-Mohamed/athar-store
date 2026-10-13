@@ -1,8 +1,10 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
+  assertSessionMatchesMode,
   mapSessionToInternalStatus,
-  requireTestSecretKey,
+  requireSecretKeyForMode,
+  resolveXpayMode,
   retrieveCheckoutSession,
 } from '../_shared/xpay.ts'
 
@@ -17,11 +19,22 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders(req) })
   }
 
+  if (req.method === 'GET') {
+    try {
+      const mode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
+      return jsonResponse(req, { mode })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'XPAY_MODE_INVALID'
+      return jsonResponse(req, { error: message }, 500)
+    }
+  }
+
   if (req.method !== 'POST') {
     return jsonResponse(req, { error: 'method_not_allowed' }, 405)
   }
 
   try {
+    const xpayMode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
     const body = (await req.json()) as StatusBody
     const paymentId = String(body.paymentId ?? '').trim()
     const guestToken = String(body.guestToken ?? '').trim()
@@ -72,11 +85,15 @@ Deno.serve(async (req) => {
       (paymentStatus === 'pending' || paymentStatus === 'requires_action')
     ) {
       try {
-        const secretKey = requireTestSecretKey(Deno.env.get('XPAY_SECRET_KEY'))
+        const secretKey = requireSecretKeyForMode(
+          xpayMode,
+          Deno.env.get('XPAY_SECRET_KEY'),
+        )
         const session = await retrieveCheckoutSession(
           secretKey,
           payment.provider_session_id,
         )
+        assertSessionMatchesMode(xpayMode, session)
         const mapped = mapSessionToInternalStatus(session)
 
         if (mapped === 'successful' && session.paymentStatus === 'paid') {
@@ -174,7 +191,13 @@ Deno.serve(async (req) => {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN'
-    if (message === 'XPAY_LIVE_KEY_REJECTED') {
+    if (
+      message === 'XPAY_MODE_MISSING' ||
+      message === 'XPAY_MODE_INVALID' ||
+      message === 'XPAY_SECRET_KEY_MISSING' ||
+      message === 'XPAY_KEY_MODE_MISMATCH' ||
+      message === 'XPAY_SESSION_MODE_MISMATCH'
+    ) {
       return jsonResponse(req, { error: message }, 500)
     }
     console.error('xpay-payment-status error:', message)

@@ -1,6 +1,8 @@
-/** XPay Hosted Checkout helpers — Test Mode only. */
+/** XPay Hosted Checkout helpers — Test or Live according to XPAY_MODE. */
 
 export const XPAY_API_BASE = 'https://api.xpay.app'
+
+export type XPayMode = 'test' | 'live'
 
 export type XPayCheckoutSession = {
   id: string
@@ -25,14 +27,33 @@ export type XPayEvent = {
   }
 }
 
-export function requireTestSecretKey(secret: string | undefined): string {
+export function resolveXpayMode(raw: string | undefined): XPayMode {
+  const mode = (raw ?? '').trim().toLowerCase()
+  if (!mode) {
+    throw new Error('XPAY_MODE_MISSING')
+  }
+  if (mode !== 'test' && mode !== 'live') {
+    throw new Error('XPAY_MODE_INVALID')
+  }
+  return mode
+}
+
+export function requireSecretKeyForMode(
+  mode: XPayMode,
+  secret: string | undefined,
+): string {
   const key = (secret ?? '').trim()
   if (!key) {
     throw new Error('XPAY_SECRET_KEY_MISSING')
   }
-  if (!key.startsWith('sk_test_')) {
-    // Hard fail — this integration is Test Mode only.
-    throw new Error('XPAY_LIVE_KEY_REJECTED')
+  if (mode === 'test') {
+    if (!key.startsWith('sk_test_')) {
+      throw new Error('XPAY_KEY_MODE_MISMATCH')
+    }
+    return key
+  }
+  if (!key.startsWith('sk_live_')) {
+    throw new Error('XPAY_KEY_MODE_MISMATCH')
   }
   return key
 }
@@ -46,6 +67,50 @@ export function requireWebhookSecret(secret: string | undefined): string {
     throw new Error('XPAY_WEBHOOK_SECRET_INVALID')
   }
   return key
+}
+
+/**
+ * Signing secrets for the webhook.
+ * Primary (XPAY_WEBHOOK_SECRET) is required and must match the configured mode.
+ * Optional XPAY_WEBHOOK_SECRET_SECONDARY is only used when explicitly set
+ * (cutover). Unsigned requests are never accepted. Test and Live secrets
+ * cannot be assumed to be the same value.
+ */
+export function collectWebhookSecrets(input: {
+  primary: string | undefined
+  secondary?: string | undefined
+}): string[] {
+  const primary = requireWebhookSecret(input.primary)
+  const secrets = [primary]
+  const secondaryRaw = (input.secondary ?? '').trim()
+  if (!secondaryRaw) return secrets
+  const secondary = requireWebhookSecret(secondaryRaw)
+  if (secondary !== primary) secrets.push(secondary)
+  return secrets
+}
+
+export function assertSessionMatchesMode(
+  mode: XPayMode,
+  session: XPayCheckoutSession,
+): void {
+  const id = String(session.id ?? '')
+  const liveId = id.startsWith('cs_live_')
+  const testId = id.startsWith('cs_test_')
+  const livemode = session.livemode
+
+  if (mode === 'test') {
+    if (livemode === true || liveId) {
+      throw new Error('XPAY_SESSION_MODE_MISMATCH')
+    }
+    return
+  }
+
+  if (livemode === false || testId) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (livemode !== true && !liveId) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
 }
 
 export function egpToMinorUnits(amount: number): number {
@@ -127,8 +192,30 @@ export async function verifyXPaySignature(
   }
 }
 
+export async function verifyXPaySignatureWithSecrets(
+  rawBody: string,
+  header: string | null | undefined,
+  secrets: string[],
+  nowSeconds = Math.floor(Date.now() / 1000),
+): Promise<{ valid: true; event: XPayEvent } | { valid: false; reason: string }> {
+  if (!header) return { valid: false, reason: 'missing_header' }
+  if (!secrets.length) return { valid: false, reason: 'missing_secret' }
+
+  let lastReason = 'bad_signature'
+  for (const secret of secrets) {
+    const result = await verifyXPaySignature(rawBody, header, secret, nowSeconds)
+    if (result.valid) return result
+    lastReason = result.reason
+    if (result.reason === 'malformed_header' || result.reason === 'timestamp_out_of_tolerance') {
+      return result
+    }
+  }
+  return { valid: false, reason: lastReason }
+}
+
 export async function createCheckoutSession(input: {
   secretKey: string
+  mode: XPayMode
   lineItems: Array<{
     name: string
     unitAmountMinor: number
@@ -193,9 +280,7 @@ export async function createCheckoutSession(input: {
   if (!session.id || !session.url) {
     throw new Error('XPAY_SESSION_INVALID_RESPONSE')
   }
-  if (session.livemode === true || session.id.startsWith('cs_live_')) {
-    throw new Error('XPAY_LIVE_SESSION_REJECTED')
-  }
+  assertSessionMatchesMode(input.mode, session)
   return session
 }
 

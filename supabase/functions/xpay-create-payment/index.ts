@@ -3,7 +3,8 @@ import { createServiceClient, storefrontBaseUrl } from '../_shared/supabaseAdmin
 import {
   createCheckoutSession,
   egpToMinorUnits,
-  requireTestSecretKey,
+  requireSecretKeyForMode,
+  resolveXpayMode,
 } from '../_shared/xpay.ts'
 
 type CreateBody = {
@@ -37,7 +38,8 @@ Deno.serve(async (req) => {
   let createdPaymentId: string | null = null
 
   try {
-    const secretKey = requireTestSecretKey(Deno.env.get('XPAY_SECRET_KEY'))
+    const xpayMode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
+    const secretKey = requireSecretKeyForMode(xpayMode, Deno.env.get('XPAY_SECRET_KEY'))
     const body = (await req.json()) as CreateBody
 
     const customerName = String(body.customerName ?? '').trim()
@@ -221,7 +223,7 @@ Deno.serve(async (req) => {
           stock_released: false,
           metadata: {
             source: 'athar_storefront',
-            mode: 'test',
+            mode: xpayMode,
           },
         })
         .select('id, guest_token')
@@ -259,6 +261,7 @@ Deno.serve(async (req) => {
     try {
       session = await createCheckoutSession({
         secretKey,
+        mode: xpayMode,
         idempotencyKey: `athar_${paymentId}`,
         afterCompletionUrl: returnUrl,
         cancelUrl,
@@ -267,7 +270,7 @@ Deno.serve(async (req) => {
         metadata: {
           athar_order_id: orderId,
           athar_payment_id: paymentId,
-          athar_mode: 'test',
+          athar_mode: xpayMode,
         },
         lineItems: orderItems.map((item) => ({
           name: String(item.product_name).slice(0, 120),
@@ -322,7 +325,7 @@ Deno.serve(async (req) => {
         provider_payment_status: session.paymentStatus ?? null,
         metadata: {
           source: 'athar_storefront',
-          mode: 'test',
+          mode: xpayMode,
           checkout_url: session.url,
           amount_minor: expectedMinor,
         },
@@ -391,20 +394,25 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (message === 'XPAY_LIVE_KEY_REJECTED' || message === 'XPAY_LIVE_SESSION_REJECTED') {
+    if (
+      message === 'XPAY_MODE_MISSING' ||
+      message === 'XPAY_MODE_INVALID' ||
+      message === 'XPAY_SECRET_KEY_MISSING' ||
+      message === 'XPAY_KEY_MODE_MISMATCH'
+    ) {
+      return jsonResponse(
+        req,
+        { error: message, message: 'إعداد الدفع غير مكتمل حالياً.' },
+        500,
+      )
+    }
+    if (message === 'XPAY_SESSION_MODE_MISMATCH') {
       return jsonResponse(
         req,
         {
           error: message,
-          message: 'وضع الاختبار فقط — تم رفض مفتاح أو جلسة حية.',
+          message: 'تعذر بدء الدفع الإلكتروني. حاولي مرة أخرى.',
         },
-        500,
-      )
-    }
-    if (message === 'XPAY_SECRET_KEY_MISSING') {
-      return jsonResponse(
-        req,
-        { error: message, message: 'إعداد الدفع غير مكتمل حالياً.' },
         500,
       )
     }
