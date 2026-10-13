@@ -174,7 +174,9 @@ const now = Math.floor(Date.now() / 1000)
 
 // 2) Invalid signature
 {
-  const header = sign(body, secret, now).replace(/v1=./, 'v1=0')
+  const header = sign(body, secret, now).replace(/v1=([0-9a-f])/, (_, firstHex) =>
+    `v1=${firstHex === '0' ? '1' : '0'}`,
+  )
   const result = verifyXPaySignature(body, header, secret, now)
   assert.equal(result.valid, false)
   assert.equal(result.reason, 'bad_signature')
