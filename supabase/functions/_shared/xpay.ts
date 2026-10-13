@@ -70,11 +70,11 @@ export function requireWebhookSecret(secret: string | undefined): string {
 }
 
 /**
- * Signing secrets for the webhook.
- * Primary (XPAY_WEBHOOK_SECRET) is required and must match the configured mode.
- * Optional XPAY_WEBHOOK_SECRET_SECONDARY is only used when explicitly set
- * (cutover). Unsigned requests are never accepted. Test and Live secrets
- * cannot be assumed to be the same value.
+ * Signing secrets for HMAC only.
+ * Primary (XPAY_WEBHOOK_SECRET) is required.
+ * Optional XPAY_WEBHOOK_SECRET_SECONDARY verifies a second Dashboard secret
+ * during cutover. A valid secondary signature never skips XPAY_MODE checks.
+ * Unsigned requests are never accepted. Test and Live secrets are not interchangeable.
  */
 export function collectWebhookSecrets(input: {
   primary: string | undefined
@@ -89,28 +89,97 @@ export function collectWebhookSecrets(input: {
   return secrets
 }
 
+function sessionIdEvidence(id: string): { test: boolean; live: boolean } {
+  return {
+    test: id.startsWith('cs_test_'),
+    live: id.startsWith('cs_live_'),
+  }
+}
+
+function paymentIntentEvidence(session: XPayCheckoutSession): {
+  test: boolean
+  live: boolean
+} {
+  const pi = String(session.paymentIntentId ?? session.paymentIntent?.id ?? '').trim()
+  if (!pi) return { test: false, live: false }
+  return {
+    test: pi.startsWith('pi_test_') || pi.startsWith('py_test_'),
+    live: pi.startsWith('pi_live_') || pi.startsWith('py_live_'),
+  }
+}
+
+/**
+ * Fail closed: require authoritative Test or Live evidence (id prefix and/or
+ * livemode). Metadata is ignored. Contradictory signals are rejected.
+ */
 export function assertSessionMatchesMode(
   mode: XPayMode,
-  session: XPayCheckoutSession,
+  session: XPayCheckoutSession | null | undefined,
 ): void {
-  const id = String(session.id ?? '')
-  const liveId = id.startsWith('cs_live_')
-  const testId = id.startsWith('cs_test_')
+  if (!session || typeof session !== 'object') {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+
+  const id = String(session.id ?? '').trim()
+  if (!id) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+
+  const ids = sessionIdEvidence(id)
+  const intent = paymentIntentEvidence(session)
   const livemode = session.livemode
 
+  if (ids.test && ids.live) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (intent.test && intent.live) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (livemode === true && (ids.test || intent.test)) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (livemode === false && (ids.live || intent.live)) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (ids.test && intent.live) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (ids.live && intent.test) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+
+  const evidenceTest = ids.test || livemode === false || intent.test
+  const evidenceLive = ids.live || livemode === true || intent.live
+
+  if (evidenceTest && evidenceLive) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+  if (!evidenceTest && !evidenceLive) {
+    throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  }
+
   if (mode === 'test') {
-    if (livemode === true || liveId) {
+    if (!evidenceTest || evidenceLive) {
       throw new Error('XPAY_SESSION_MODE_MISMATCH')
     }
     return
   }
 
-  if (livemode === false || testId) {
+  if (!evidenceLive || evidenceTest) {
     throw new Error('XPAY_SESSION_MODE_MISMATCH')
   }
-  if (livemode !== true && !liveId) {
-    throw new Error('XPAY_SESSION_MODE_MISMATCH')
-  }
+}
+
+/** Paid confirmation uses provider paymentStatus, never metadata. */
+export function isAuthoritativePaidSession(session: XPayCheckoutSession): boolean {
+  return session.paymentStatus === 'paid'
+}
+
+export function isPaidCheckoutEventType(eventType: string): boolean {
+  return (
+    eventType === 'checkout.session.completed' ||
+    eventType === 'checkout.session.async_payment_succeeded'
+  )
 }
 
 export function egpToMinorUnits(amount: number): number {
@@ -287,6 +356,7 @@ export async function createCheckoutSession(input: {
 export async function retrieveCheckoutSession(
   secretKey: string,
   sessionId: string,
+  mode?: XPayMode,
 ): Promise<XPayCheckoutSession> {
   const res = await fetch(
     `${XPAY_API_BASE}/checkout/sessions/${encodeURIComponent(sessionId)}`,
@@ -301,7 +371,11 @@ export async function retrieveCheckoutSession(
   if (!res.ok) {
     throw new Error('XPAY_SESSION_RETRIEVE_FAILED')
   }
-  return payload as XPayCheckoutSession
+  const session = payload as XPayCheckoutSession
+  if (mode) {
+    assertSessionMatchesMode(mode, session)
+  }
+  return session
 }
 
 export function mapSessionToInternalStatus(

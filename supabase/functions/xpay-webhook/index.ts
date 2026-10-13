@@ -1,7 +1,11 @@
 import { textResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
+  assertSessionMatchesMode,
   collectWebhookSecrets,
+  isAuthoritativePaidSession,
+  isPaidCheckoutEventType,
+  resolveXpayMode,
   verifyXPaySignatureWithSecrets,
   type XPayCheckoutSession,
 } from '../_shared/xpay.ts'
@@ -12,6 +16,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const xpayMode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
     const secrets = collectWebhookSecrets({
       primary: Deno.env.get('XPAY_WEBHOOK_SECRET'),
       secondary: Deno.env.get('XPAY_WEBHOOK_SECRET_SECONDARY'),
@@ -41,25 +46,50 @@ Deno.serve(async (req) => {
     }
 
     const session = (event.data?.object ?? null) as XPayCheckoutSession | null
-    if (!session?.id) {
-      // Record empty/unknown payloads so retries don't loop forever.
-      await supabase.from('xpay_webhook_events').insert({
-        event_id: event.id,
-        event_type: event.type,
-      })
-      return textResponse(req, 'ok', 200)
+    try {
+      assertSessionMatchesMode(xpayMode, session)
+    } catch {
+      // Signed but wrong/missing mode: do not record event id (avoid poison), do not mark paid.
+      return textResponse(req, 'mode_mismatch', 400)
     }
 
-    const paymentIdFromMeta = session.metadata?.athar_payment_id
-    let paymentQuery = supabase.from('payments').select('id, order_id, status')
-    if (paymentIdFromMeta) {
-      paymentQuery = paymentQuery.eq('id', paymentIdFromMeta)
-    } else {
-      paymentQuery = paymentQuery.eq('provider_session_id', session.id)
+    const trustedSession = session as XPayCheckoutSession
+    const sessionId = String(trustedSession.id).trim()
+    const paymentIdFromMeta = trustedSession.metadata?.athar_payment_id
+
+    // Authoritative lookup is provider session id. Metadata is a hint only.
+    const { data: bySession, error: sessionLookupError } = await supabase
+      .from('payments')
+      .select('id, order_id, status, provider_session_id')
+      .eq('provider', 'xpay')
+      .eq('provider_session_id', sessionId)
+      .maybeSingle()
+    if (sessionLookupError) {
+      return textResponse(req, 'processing_failed', 500)
     }
 
-    const { data: payment, error: paymentLookupError } = await paymentQuery.maybeSingle()
-    if (paymentLookupError || !payment) {
+    let payment = bySession
+    if (!payment && paymentIdFromMeta) {
+      const { data: byMeta, error: metaLookupError } = await supabase
+        .from('payments')
+        .select('id, order_id, status, provider_session_id')
+        .eq('provider', 'xpay')
+        .eq('id', paymentIdFromMeta)
+        .maybeSingle()
+      if (metaLookupError) {
+        return textResponse(req, 'processing_failed', 500)
+      }
+      if (
+        byMeta &&
+        byMeta.provider_session_id &&
+        byMeta.provider_session_id !== sessionId
+      ) {
+        return textResponse(req, 'mode_mismatch', 400)
+      }
+      payment = byMeta
+    }
+
+    if (!payment) {
       await supabase.from('xpay_webhook_events').insert({
         event_id: event.id,
         event_type: event.type,
@@ -68,23 +98,18 @@ Deno.serve(async (req) => {
     }
 
     const paymentIntentId =
-      session.paymentIntentId ??
-      session.paymentIntent?.id ??
+      trustedSession.paymentIntentId ??
+      trustedSession.paymentIntent?.id ??
       null
 
     // Process FIRST (RPCs are idempotent), then record event id.
-    // This avoids permanently swallowing a paid event when insert-before-process fails mid-way.
-    if (
-      (event.type === 'checkout.session.completed' ||
-        event.type === 'checkout.session.async_payment_succeeded') &&
-      session.paymentStatus === 'paid'
-    ) {
+    if (isPaidCheckoutEventType(event.type) && isAuthoritativePaidSession(trustedSession)) {
       const { error } = await supabase.rpc('mark_xpay_order_paid', {
         p_payment_id: payment.id,
-        p_provider_session_id: session.id,
+        p_provider_session_id: trustedSession.id,
         p_provider_payment_intent_id: paymentIntentId,
-        p_provider_status: session.status ?? null,
-        p_provider_payment_status: session.paymentStatus ?? null,
+        p_provider_status: trustedSession.status ?? null,
+        p_provider_payment_status: trustedSession.paymentStatus ?? null,
       })
       if (error) {
         console.error('xpay-webhook mark paid failed:', error.message)
@@ -94,9 +119,9 @@ Deno.serve(async (req) => {
       const { error } = await supabase.rpc('cancel_unpaid_xpay_order', {
         p_payment_id: payment.id,
         p_payment_status: 'failed',
-        p_provider_session_id: session.id,
-        p_provider_status: session.status ?? null,
-        p_provider_payment_status: session.paymentStatus ?? null,
+        p_provider_session_id: trustedSession.id,
+        p_provider_status: trustedSession.status ?? null,
+        p_provider_payment_status: trustedSession.paymentStatus ?? null,
       })
       if (error) {
         console.error('xpay-webhook cancel failed:', error.message)
@@ -106,25 +131,24 @@ Deno.serve(async (req) => {
       const { error } = await supabase.rpc('cancel_unpaid_xpay_order', {
         p_payment_id: payment.id,
         p_payment_status: 'expired',
-        p_provider_session_id: session.id,
-        p_provider_status: session.status ?? null,
-        p_provider_payment_status: session.paymentStatus ?? null,
+        p_provider_session_id: trustedSession.id,
+        p_provider_status: trustedSession.status ?? null,
+        p_provider_payment_status: trustedSession.paymentStatus ?? null,
       })
       if (error) {
         console.error('xpay-webhook expire failed:', error.message)
         return textResponse(req, 'processing_failed', 500)
       }
     } else if (event.type === 'refund.created' || event.type === 'charge.refunded') {
-      // Only mutate payments that were actually successful.
       if (
         payment.status === 'successful' ||
         payment.status === 'partially_refunded' ||
         payment.status === 'refunded'
       ) {
         const amountRefunded = Number(
-          (session as { amountRefunded?: number }).amountRefunded ?? Number.NaN,
+          (trustedSession as { amountRefunded?: number }).amountRefunded ?? Number.NaN,
         )
-        const amountTotal = Number(session.amountTotal ?? Number.NaN)
+        const amountTotal = Number(trustedSession.amountTotal ?? Number.NaN)
         const nextStatus =
           Number.isFinite(amountRefunded) &&
           Number.isFinite(amountTotal) &&
@@ -137,8 +161,8 @@ Deno.serve(async (req) => {
           .from('payments')
           .update({
             status: nextStatus,
-            provider_status: session.status ?? null,
-            provider_payment_status: session.paymentStatus ?? null,
+            provider_status: trustedSession.status ?? null,
+            provider_payment_status: trustedSession.paymentStatus ?? null,
           })
           .eq('id', payment.id)
           .in('status', ['successful', 'partially_refunded', 'refunded'])
@@ -159,13 +183,13 @@ Deno.serve(async (req) => {
           return textResponse(req, 'processing_failed', 500)
         }
       }
-    } else if (session.status || session.paymentStatus) {
+    } else if (trustedSession.status || trustedSession.paymentStatus) {
       await supabase
         .from('payments')
         .update({
-          provider_session_id: session.id,
-          provider_status: session.status ?? null,
-          provider_payment_status: session.paymentStatus ?? null,
+          provider_session_id: trustedSession.id,
+          provider_status: trustedSession.status ?? null,
+          provider_payment_status: trustedSession.paymentStatus ?? null,
           provider_payment_intent_id: paymentIntentId,
         })
         .eq('id', payment.id)
@@ -179,8 +203,6 @@ Deno.serve(async (req) => {
     })
 
     if (dedupeError && dedupeError.code !== '23505') {
-      // Processing succeeded; event insert failed. Return 500 so XPay retries —
-      // handler is idempotent on payment RPCs.
       console.error('xpay-webhook dedupe insert failed')
       return textResponse(req, 'dedupe_failed', 500)
     }
@@ -188,8 +210,14 @@ Deno.serve(async (req) => {
     return textResponse(req, 'ok', 200)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN'
+    if (message === 'XPAY_MODE_MISSING' || message === 'XPAY_MODE_INVALID') {
+      return textResponse(req, 'misconfigured', 500)
+    }
     if (message === 'XPAY_WEBHOOK_SECRET_MISSING' || message === 'XPAY_WEBHOOK_SECRET_INVALID') {
       return textResponse(req, 'misconfigured', 500)
+    }
+    if (message === 'XPAY_SESSION_MODE_MISMATCH') {
+      return textResponse(req, 'mode_mismatch', 400)
     }
     console.error('xpay-webhook error:', message)
     return textResponse(req, 'error', 500)

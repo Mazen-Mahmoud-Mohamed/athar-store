@@ -48,16 +48,57 @@ function collectWebhookSecrets({ primary, secondary }) {
 }
 
 function assertSessionMatchesMode(mode, session) {
-  const id = String(session.id ?? '')
-  const liveId = id.startsWith('cs_live_')
-  const testId = id.startsWith('cs_test_')
+  if (!session || typeof session !== 'object') throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  const id = String(session.id ?? '').trim()
+  if (!id) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  const ids = {
+    test: id.startsWith('cs_test_'),
+    live: id.startsWith('cs_live_'),
+  }
+  const pi = String(session.paymentIntentId ?? session.paymentIntent?.id ?? '').trim()
+  const intent = {
+    test: pi.startsWith('pi_test_') || pi.startsWith('py_test_'),
+    live: pi.startsWith('pi_live_') || pi.startsWith('py_live_'),
+  }
   const livemode = session.livemode
+  if (ids.test && ids.live) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (intent.test && intent.live) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (livemode === true && (ids.test || intent.test)) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (livemode === false && (ids.live || intent.live)) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (ids.test && intent.live) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (ids.live && intent.test) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  const evidenceTest = ids.test || livemode === false || intent.test
+  const evidenceLive = ids.live || livemode === true || intent.live
+  if (evidenceTest && evidenceLive) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (!evidenceTest && !evidenceLive) throw new Error('XPAY_SESSION_MODE_MISMATCH')
   if (mode === 'test') {
-    if (livemode === true || liveId) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+    if (!evidenceTest || evidenceLive) throw new Error('XPAY_SESSION_MODE_MISMATCH')
     return
   }
-  if (livemode === false || testId) throw new Error('XPAY_SESSION_MODE_MISMATCH')
-  if (livemode !== true && !liveId) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+  if (!evidenceLive || evidenceTest) throw new Error('XPAY_SESSION_MODE_MISMATCH')
+}
+
+function isAuthoritativePaidSession(session) {
+  return session.paymentStatus === 'paid'
+}
+
+function isPaidCheckoutEventType(eventType) {
+  return (
+    eventType === 'checkout.session.completed' ||
+    eventType === 'checkout.session.async_payment_succeeded'
+  )
+}
+
+/** Mirrors webhook: HMAC is assumed done; mode isolation then paid check. */
+function evaluateWebhook(mode, event) {
+  try {
+    assertSessionMatchesMode(mode, event?.data?.object)
+  } catch (error) {
+    return { rejected: true, markPaid: false, reason: error.message }
+  }
+  const markPaid =
+    isPaidCheckoutEventType(event.type) && isAuthoritativePaidSession(event.data.object)
+  return { rejected: false, markPaid, reason: null }
 }
 
 function verifyXPaySignature(rawBody, header, secret, nowSeconds = Math.floor(Date.now() / 1000)) {
@@ -172,13 +213,15 @@ assert.throws(() => requireSecretKeyForMode('live', 'sk_test_placeholder'), /XPA
 assert.throws(() => requireSecretKeyForMode('test', ''), /XPAY_SECRET_KEY_MISSING/)
 assert.throws(() => requireSecretKeyForMode('live', undefined), /XPAY_SECRET_KEY_MISSING/)
 
-// 7) Session livemode / id mismatches
+// 7) Session livemode / id mismatches — fail closed without evidence
 assert.doesNotThrow(() =>
   assertSessionMatchesMode('test', { id: 'cs_test_abc', livemode: false }),
 )
 assert.doesNotThrow(() =>
   assertSessionMatchesMode('live', { id: 'cs_live_abc', livemode: true }),
 )
+assert.doesNotThrow(() => assertSessionMatchesMode('test', { id: 'cs_test_abc' }))
+assert.doesNotThrow(() => assertSessionMatchesMode('live', { id: 'cs_live_abc' }))
 assert.throws(
   () => assertSessionMatchesMode('test', { id: 'cs_live_abc', livemode: true }),
   /XPAY_SESSION_MODE_MISMATCH/,
@@ -189,6 +232,28 @@ assert.throws(
 )
 assert.throws(
   () => assertSessionMatchesMode('live', { id: 'cs_unknown', livemode: undefined }),
+  /XPAY_SESSION_MODE_MISMATCH/,
+)
+assert.throws(
+  () => assertSessionMatchesMode('test', { id: 'cs_unknown', livemode: undefined }),
+  /XPAY_SESSION_MODE_MISMATCH/,
+)
+assert.throws(() => assertSessionMatchesMode('test', { id: '' }), /XPAY_SESSION_MODE_MISMATCH/)
+assert.throws(() => assertSessionMatchesMode('live', null), /XPAY_SESSION_MODE_MISMATCH/)
+assert.throws(
+  () =>
+    assertSessionMatchesMode('test', {
+      id: 'cs_test_abc',
+      livemode: true,
+    }),
+  /XPAY_SESSION_MODE_MISMATCH/,
+)
+assert.throws(
+  () =>
+    assertSessionMatchesMode('live', {
+      id: 'cs_live_abc',
+      paymentIntentId: 'pi_test_abc',
+    }),
   /XPAY_SESSION_MODE_MISMATCH/,
 )
 
@@ -299,5 +364,96 @@ function egpToMinorUnits(amount) {
 }
 assert.equal(egpToMinorUnits(1499), 149900)
 assert.equal(egpToMinorUnits(10.5), 1050)
+
+// 13) Webhook mode isolation (HMAC already verified; secondary cannot skip this)
+{
+  const testPaid = {
+    id: 'evt_test_paid',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_test_1', livemode: false, paymentStatus: 'paid', status: 'complete' } },
+  }
+  const livePaid = {
+    id: 'evt_live_paid',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_live_1', livemode: true, paymentStatus: 'paid', status: 'complete' } },
+  }
+  const testUnpaid = {
+    id: 'evt_test_unpaid',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_test_2', livemode: false, paymentStatus: 'unpaid', status: 'complete' } },
+  }
+  const testFailed = {
+    id: 'evt_test_failed',
+    type: 'checkout.session.async_payment_failed',
+    data: { object: { id: 'cs_test_3', livemode: false, paymentStatus: 'unpaid', status: 'complete' } },
+  }
+  const testExpired = {
+    id: 'evt_test_expired',
+    type: 'checkout.session.expired',
+    data: { object: { id: 'cs_test_4', livemode: false, paymentStatus: 'unpaid', status: 'expired' } },
+  }
+  const missingMode = {
+    id: 'evt_unknown',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_unknown', paymentStatus: 'paid' } },
+  }
+  const metadataOnly = {
+    id: 'evt_meta',
+    type: 'checkout.session.completed',
+    data: {
+      object: {
+        id: 'cs_unknown',
+        paymentStatus: 'paid',
+        metadata: { athar_mode: 'test' },
+      },
+    },
+  }
+
+  const testOk = evaluateWebhook('test', testPaid)
+  assert.equal(testOk.rejected, false)
+  assert.equal(testOk.markPaid, true)
+
+  const liveOk = evaluateWebhook('live', livePaid)
+  assert.equal(liveOk.rejected, false)
+  assert.equal(liveOk.markPaid, true)
+
+  const testInLive = evaluateWebhook('live', testPaid)
+  assert.equal(testInLive.rejected, true)
+  assert.equal(testInLive.markPaid, false)
+
+  const liveInTest = evaluateWebhook('test', livePaid)
+  assert.equal(liveInTest.rejected, true)
+  assert.equal(liveInTest.markPaid, false)
+
+  const unpaid = evaluateWebhook('test', testUnpaid)
+  assert.equal(unpaid.rejected, false)
+  assert.equal(unpaid.markPaid, false)
+
+  const failed = evaluateWebhook('test', testFailed)
+  assert.equal(failed.rejected, false)
+  assert.equal(failed.markPaid, false)
+
+  const expired = evaluateWebhook('test', testExpired)
+  assert.equal(expired.rejected, false)
+  assert.equal(expired.markPaid, false)
+
+  const malformed = evaluateWebhook('test', missingMode)
+  assert.equal(malformed.rejected, true)
+  assert.equal(malformed.markPaid, false)
+
+  const metaBypass = evaluateWebhook('test', metadataOnly)
+  assert.equal(metaBypass.rejected, true)
+  assert.equal(metaBypass.markPaid, false)
+
+  // Dual HMAC secrets still require matching session mode
+  const secrets = collectWebhookSecrets({ primary: secret, secondary })
+  const liveBody = JSON.stringify(livePaid)
+  const liveHeader = sign(liveBody, secondary, now)
+  const hmacOk = verifyXPaySignatureWithSecrets(liveBody, liveHeader, secrets, now)
+  assert.equal(hmacOk.valid, true)
+  const isolated = evaluateWebhook('test', hmacOk.event)
+  assert.equal(isolated.rejected, true)
+  assert.equal(isolated.markPaid, false)
+}
 
 console.log('xpay signature + mode guards + webhook/stock idempotency: OK')

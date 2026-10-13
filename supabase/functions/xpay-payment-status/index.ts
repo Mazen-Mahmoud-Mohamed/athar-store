@@ -1,7 +1,6 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
-  assertSessionMatchesMode,
   mapSessionToInternalStatus,
   requireSecretKeyForMode,
   resolveXpayMode,
@@ -92,8 +91,8 @@ Deno.serve(async (req) => {
         const session = await retrieveCheckoutSession(
           secretKey,
           payment.provider_session_id,
+          xpayMode,
         )
-        assertSessionMatchesMode(xpayMode, session)
         const mapped = mapSessionToInternalStatus(session)
 
         if (mapped === 'successful' && session.paymentStatus === 'paid') {

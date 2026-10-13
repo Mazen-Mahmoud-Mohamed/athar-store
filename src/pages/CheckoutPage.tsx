@@ -66,6 +66,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodChoice>('cod')
   const [xpayMode, setXpayMode] = useState<XPayConfiguredMode | null>(null)
+  const [xpayModeResolved, setXpayModeResolved] = useState(false)
   const submitLock = useRef(false)
   const xpayIdempotencyKey = useRef(crypto.randomUUID())
 
@@ -140,10 +141,18 @@ export function CheckoutPage() {
     let active = true
     void fetchXPayConfiguredMode()
       .then((mode) => {
-        if (active) setXpayMode(mode)
+        if (!active) return
+        setXpayMode(mode)
+        setXpayModeResolved(true)
+        if (!mode) {
+          setPaymentMethod((current) => (current === 'xpay' ? 'cod' : current))
+        }
       })
       .catch(() => {
-        if (active) setXpayMode(null)
+        if (!active) return
+        setXpayMode(null)
+        setXpayModeResolved(true)
+        setPaymentMethod((current) => (current === 'xpay' ? 'cod' : current))
       })
     return () => {
       active = false
@@ -289,6 +298,15 @@ export function CheckoutPage() {
       }
 
       if (paymentMethod === 'xpay') {
+        if (xpayMode !== 'test' && xpayMode !== 'live') {
+          const message =
+            'تعذر التحقق من وضع الدفع من الخادم. لا يمكن بدء الدفع الإلكتروني حالياً.'
+          setSubmitError(message)
+          toast.error(message)
+          submitLock.current = false
+          setSubmitting(false)
+          return
+        }
         const started = await startXPayCheckout(
           validated.payload,
           cartCheck.syncedItems,
@@ -347,8 +365,13 @@ export function CheckoutPage() {
     }
   }
 
+  const xpayReady = xpayMode === 'test' || xpayMode === 'live'
   const submitDisabled =
-    submitting || checkingCart || needsReview || items.length === 0
+    submitting ||
+    checkingCart ||
+    needsReview ||
+    items.length === 0 ||
+    (paymentMethod === 'xpay' && !xpayReady)
 
   return (
     <>
@@ -552,23 +575,29 @@ export function CheckoutPage() {
                     paymentMethod === 'xpay'
                       ? 'border-gold bg-gold/10'
                       : 'border-taupe/35 bg-card hover:border-taupe/55'
-                  } ${submitting ? 'pointer-events-none opacity-70' : ''}`}
+                  } ${submitting || !xpayReady ? 'pointer-events-none opacity-70' : ''}`}
                 >
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="xpay"
                     checked={paymentMethod === 'xpay'}
-                    onChange={() => setPaymentMethod('xpay')}
-                    disabled={submitting}
+                    onChange={() => {
+                      if (xpayReady) setPaymentMethod('xpay')
+                    }}
+                    disabled={submitting || !xpayReady}
                     className="mt-1 size-4 accent-[var(--color-gold-deep,#8a6a2f)]"
                   />
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-brown">الدفع أونلاين</span>
                     <span className="mt-1 block text-xs leading-6 text-mocha">
-                      {xpayMode === 'live'
-                        ? 'الدفع الآمن عبر XPay. سيتم تحويلك لصفحة دفع خارجية.'
-                        : 'الدفع الآمن عبر XPay (وضع الاختبار). سيتم تحويلك لصفحة دفع خارجية.'}
+                      {!xpayModeResolved
+                        ? 'جارٍ التحقق من وضع الدفع من الخادم…'
+                        : xpayMode === 'live'
+                          ? 'الدفع الآمن عبر XPay. سيتم تحويلك لصفحة دفع خارجية.'
+                          : xpayMode === 'test'
+                            ? 'الدفع الآمن عبر XPay (وضع الاختبار). سيتم تحويلك لصفحة دفع خارجية.'
+                            : 'تعذر التحقق من وضع الدفع من الخادم. لا يمكن بدء الدفع الإلكتروني حتى يتوفر الوضع.'}
                     </span>
                   </span>
                 </label>

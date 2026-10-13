@@ -113,6 +113,19 @@ Live (only after a deliberate cutover — do not mix prefixes):
 - `XPAY_WEBHOOK_SECRET` must be the Live Dashboard `whsec_...` (Test and Live secrets are not interchangeable)
 - Optional cutover only: `XPAY_WEBHOOK_SECRET_SECONDARY` = the other environment’s `whsec_...` so both signatures verify until you remove it
 - Unsigned webhook bodies are always rejected
+- Webhook HMAC success does **not** skip `XPAY_MODE`. Test sessions (`cs_test_` / `livemode:false`) are rejected when mode is `live`, and Live sessions when mode is `test`. Missing or contradictory provider mode data is rejected and **not** recorded as a processed event.
+
+When to set `XPAY_WEBHOOK_SECRET_SECONDARY`:
+
+1. Only after the **other** XPay Dashboard (Test or Live) has its own webhook endpoint and `whsec_...`.
+2. Set it **before** flipping `XPAY_MODE` + `XPAY_SECRET_KEY`, so in-flight events from the old Dashboard still verify HMAC.
+3. Secondary never authorizes the wrong mode: a Live-signed Test session is still rejected in `XPAY_MODE=live`, and vice versa.
+
+When to remove it:
+
+1. After `XPAY_MODE` and the API key match the new environment.
+2. After the old Dashboard is disabled or no longer sending.
+3. Do not leave both secrets set longer than the overlap window.
 
 `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` are injected automatically by Supabase for Edge Functions.
 
@@ -137,7 +150,7 @@ In [app.xpay.app](https://app.xpay.app) (matching Test or Live mode):
    - `checkout.session.expired` (if available)
 4. Copy that mode’s `whsec_...` into `XPAY_WEBHOOK_SECRET`
 
-Limitation: one Edge Function has one primary signing secret (plus optional secondary). Test and Live Dashboards cannot share a secret. During cutover, set `XPAY_WEBHOOK_SECRET_SECONDARY` explicitly; do not leave both secrets set longer than needed.
+Limitation: one Edge Function has one primary signing secret (plus optional secondary). Test and Live Dashboards cannot share a secret. Secondary is HMAC-only overlap; mode isolation still uses provider session `livemode` / `cs_test_` / `cs_live_`. Do not leave both secrets set longer than needed.
 
 ### 5. Test cards (XPay Test Mode docs)
 
