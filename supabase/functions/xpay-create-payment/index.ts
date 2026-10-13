@@ -1,10 +1,14 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, storefrontBaseUrl } from '../_shared/supabaseAdmin.ts'
 import {
+  assertPaymentCanBeMarkedSuccessful,
+  assertPaymentModeMatches,
+  assertSessionMatchesPayment,
   createCheckoutSession,
   egpToMinorUnits,
   requireSecretKeyForMode,
   resolveXpayMode,
+  retrieveCheckoutSession,
 } from '../_shared/xpay.ts'
 
 type CreateBody = {
@@ -60,10 +64,28 @@ Deno.serve(async (req) => {
     const { data: existingPayment } = await supabase
       .from('payments')
       .select(
-        'id, guest_token, provider_session_id, status, order_id, amount, metadata, stock_released',
+        'id, guest_token, provider, provider_session_id, status, order_id, amount, currency, metadata, stock_released',
       )
       .eq('idempotency_key', idempotencyKey)
       .maybeSingle()
+
+    if (existingPayment) {
+      try {
+        assertPaymentModeMatches(xpayMode, existingPayment)
+      } catch {
+        return jsonResponse(
+          req,
+          { error: 'PAYMENT_MODE_MISMATCH', message: 'تعذر متابعة محاولة دفع من وضع مختلف.' },
+          409,
+        )
+      }
+      if (
+        existingPayment.provider !== 'xpay' ||
+        existingPayment.currency?.trim().toUpperCase() !== 'EGP'
+      ) {
+        return jsonResponse(req, { error: 'PAYMENT_ATTEMPT_INVALID' }, 409)
+      }
+    }
 
     if (existingPayment?.status === 'successful') {
       return jsonResponse(
@@ -101,6 +123,51 @@ Deno.serve(async (req) => {
     if (reusable) {
       const checkoutUrl = (reusable.metadata as { checkout_url?: string } | null)?.checkout_url
       if (reusable.provider_session_id && checkoutUrl) {
+        const { data: reusableOrder, error: reusableOrderError } = await supabase
+          .from('orders')
+          .select('id, status, payment_method, payment_status, total')
+          .eq('id', reusable.order_id)
+          .maybeSingle()
+
+        if (
+          reusableOrderError ||
+          !reusableOrder ||
+          reusableOrder.status !== 'pending' ||
+          reusableOrder.payment_status === 'successful'
+        ) {
+          return jsonResponse(req, { error: 'PAYMENT_ATTEMPT_STALE' }, 409)
+        }
+
+        const session = await retrieveCheckoutSession(
+          secretKey,
+          reusable.provider_session_id,
+          xpayMode,
+        )
+        const expectedMinor = assertSessionMatchesPayment(
+          xpayMode,
+          session,
+          {
+            id: reusable.id,
+            order_id: reusable.order_id,
+            provider: reusable.provider,
+            status: reusable.status,
+            amount: reusable.amount,
+            currency: reusable.currency,
+            provider_session_id: reusable.provider_session_id,
+            metadata: reusable.metadata,
+          },
+          reusableOrder,
+        )
+        assertPaymentCanBeMarkedSuccessful(
+          reusable.status,
+          reusableOrder.status,
+          reusableOrder.payment_status,
+        )
+        const storedMinor = (reusable.metadata as { amount_minor?: unknown } | null)?.amount_minor
+        if (storedMinor !== expectedMinor) {
+          return jsonResponse(req, { error: 'PAYMENT_ATTEMPT_INVALID' }, 409)
+        }
+
         return jsonResponse(req, {
           paymentId: reusable.id,
           guestToken: reusable.guest_token,
@@ -288,34 +355,27 @@ Deno.serve(async (req) => {
       throw sessionError
     }
 
-    if (session.currency && String(session.currency).toUpperCase() !== 'EGP') {
-      await supabase.rpc('cancel_unpaid_xpay_order', {
-        p_payment_id: paymentId,
-        p_payment_status: 'failed',
-        p_provider_session_id: session.id,
-        p_provider_status: session.status ?? null,
-        p_provider_payment_status: session.paymentStatus ?? null,
-      })
-      createdPaymentId = null
-      createdOrderId = null
-      return jsonResponse(req, { error: 'XPAY_CURRENCY_MISMATCH' }, 500)
-    }
-
-    if (
-      typeof session.amountTotal === 'number' &&
-      session.amountTotal !== expectedMinor
-    ) {
-      await supabase.rpc('cancel_unpaid_xpay_order', {
-        p_payment_id: paymentId,
-        p_payment_status: 'failed',
-        p_provider_session_id: session.id,
-        p_provider_status: session.status ?? null,
-        p_provider_payment_status: session.paymentStatus ?? null,
-      })
-      createdPaymentId = null
-      createdOrderId = null
-      return jsonResponse(req, { error: 'XPAY_AMOUNT_MISMATCH' }, 500)
-    }
+    assertSessionMatchesPayment(
+      xpayMode,
+      session,
+      {
+        id: paymentId,
+        order_id: orderId,
+        provider: 'xpay',
+        status: reusable?.status ?? 'pending',
+        amount: orderTotal,
+        currency: 'EGP',
+        provider_session_id: session.id,
+        metadata: { mode: xpayMode },
+      },
+      {
+        id: orderId,
+        status: 'pending',
+        payment_method: 'xpay',
+        payment_status: 'pending',
+        total: orderTotal,
+      },
+    )
 
     const { error: updateError } = await supabase
       .from('payments')

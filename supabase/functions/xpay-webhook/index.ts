@@ -1,6 +1,8 @@
 import { textResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
+  assertPaymentCanBeMarkedSuccessful,
+  assertSessionMatchesPayment,
   assertSessionMatchesMode,
   collectWebhookSecrets,
   isAuthoritativePaidSession,
@@ -34,17 +36,6 @@ Deno.serve(async (req) => {
     const event = verified.event
     const supabase = createServiceClient()
 
-    // If we already fully recorded this event id, acknowledge without re-work.
-    const { data: seen } = await supabase
-      .from('xpay_webhook_events')
-      .select('event_id')
-      .eq('event_id', event.id)
-      .maybeSingle()
-
-    if (seen) {
-      return textResponse(req, 'ok', 200)
-    }
-
     const session = (event.data?.object ?? null) as XPayCheckoutSession | null
     try {
       assertSessionMatchesMode(xpayMode, session)
@@ -57,10 +48,21 @@ Deno.serve(async (req) => {
     const sessionId = String(trustedSession.id).trim()
     const paymentIdFromMeta = trustedSession.metadata?.athar_payment_id
 
+    // Reject cross-mode replays before the global event-id dedupe lookup.
+    const { data: seen } = await supabase
+      .from('xpay_webhook_events')
+      .select('event_id')
+      .eq('event_id', event.id)
+      .maybeSingle()
+
+    if (seen) {
+      return textResponse(req, 'ok', 200)
+    }
+
     // Authoritative lookup is provider session id. Metadata is a hint only.
     const { data: bySession, error: sessionLookupError } = await supabase
       .from('payments')
-      .select('id, order_id, status, provider_session_id')
+      .select('id, order_id, provider, status, amount, currency, provider_session_id, metadata')
       .eq('provider', 'xpay')
       .eq('provider_session_id', sessionId)
       .maybeSingle()
@@ -72,7 +74,7 @@ Deno.serve(async (req) => {
     if (!payment && paymentIdFromMeta) {
       const { data: byMeta, error: metaLookupError } = await supabase
         .from('payments')
-        .select('id, order_id, status, provider_session_id')
+        .select('id, order_id, provider, status, amount, currency, provider_session_id, metadata')
         .eq('provider', 'xpay')
         .eq('id', paymentIdFromMeta)
         .maybeSingle()
@@ -97,6 +99,17 @@ Deno.serve(async (req) => {
       return textResponse(req, 'ok', 200)
     }
 
+    const { data: order, error: orderLookupError } = await supabase
+      .from('orders')
+      .select('id, status, payment_method, payment_status, total')
+      .eq('id', payment.order_id)
+      .maybeSingle()
+    if (orderLookupError || !order) {
+      return textResponse(req, 'processing_failed', 500)
+    }
+
+    assertSessionMatchesPayment(xpayMode, trustedSession, payment, order)
+
     const paymentIntentId =
       trustedSession.paymentIntentId ??
       trustedSession.paymentIntent?.id ??
@@ -104,6 +117,11 @@ Deno.serve(async (req) => {
 
     // Process FIRST (RPCs are idempotent), then record event id.
     if (isPaidCheckoutEventType(event.type) && isAuthoritativePaidSession(trustedSession)) {
+      assertPaymentCanBeMarkedSuccessful(
+        payment.status,
+        order.status,
+        order.payment_status,
+      )
       const { error } = await supabase.rpc('mark_xpay_order_paid', {
         p_payment_id: payment.id,
         p_provider_session_id: trustedSession.id,

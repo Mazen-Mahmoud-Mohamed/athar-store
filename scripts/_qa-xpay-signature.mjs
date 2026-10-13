@@ -78,6 +78,88 @@ function assertSessionMatchesMode(mode, session) {
   if (!evidenceLive || evidenceTest) throw new Error('XPAY_SESSION_MODE_MISMATCH')
 }
 
+function assertPaymentModeMatches(mode, payment) {
+  if (payment.metadata?.mode !== mode) throw new Error('XPAY_PAYMENT_MODE_MISMATCH')
+  if (payment.provider_session_id) {
+    assertSessionMatchesMode(mode, { id: payment.provider_session_id })
+  }
+}
+
+function egpToMinorUnits(amount) {
+  const decimal = typeof amount === 'number' ? String(amount) : String(amount).trim()
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(decimal)
+  if (!match) throw new Error('INVALID_AMOUNT')
+  const minor = BigInt(match[1]) * 100n + BigInt((match[2] ?? '').padEnd(2, '0'))
+  if (minor > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('INVALID_AMOUNT')
+  return Number(minor)
+}
+
+function assertSessionMatchesPayment(mode, session, payment, order) {
+  assertSessionMatchesMode(mode, session)
+  assertPaymentModeMatches(mode, payment)
+
+  if (
+    payment.provider !== 'xpay' ||
+    payment.order_id !== order.id ||
+    order.payment_method !== 'xpay'
+  ) {
+    throw new Error('XPAY_PAYMENT_OWNERSHIP_MISMATCH')
+  }
+
+  const sessionMetadata = session.metadata ?? {}
+  const expectedMetadata = {
+    athar_payment_id: payment.id,
+    athar_order_id: order.id,
+    athar_mode: mode,
+  }
+  for (const [key, expected] of Object.entries(expectedMetadata)) {
+    const actual = sessionMetadata[key]
+    if (actual != null && actual !== expected) {
+      throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+    }
+  }
+  if (payment.provider_session_id) {
+    if (session.id !== payment.provider_session_id) {
+      throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+    }
+  } else if (
+    sessionMetadata.athar_payment_id !== payment.id ||
+    sessionMetadata.athar_order_id !== order.id ||
+    sessionMetadata.athar_mode !== mode
+  ) {
+    throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+  }
+
+  const paymentCurrency = String(payment.currency ?? '').trim().toUpperCase()
+  const sessionCurrency = String(session.currency ?? '').trim().toUpperCase()
+  if (!paymentCurrency || paymentCurrency !== 'EGP' || sessionCurrency !== paymentCurrency) {
+    throw new Error('XPAY_CURRENCY_MISMATCH')
+  }
+  if (typeof session.amountTotal !== 'number' || !Number.isSafeInteger(session.amountTotal)) {
+    throw new Error('XPAY_AMOUNT_MISMATCH')
+  }
+  const paymentMinor = egpToMinorUnits(payment.amount)
+  const orderMinor = egpToMinorUnits(order.total)
+  if (paymentMinor <= 0 || paymentMinor !== orderMinor || session.amountTotal !== paymentMinor) {
+    throw new Error('XPAY_AMOUNT_MISMATCH')
+  }
+  return paymentMinor
+}
+
+function assertPaymentCanBeMarkedSuccessful(paymentStatus, orderStatus, orderPaymentStatus) {
+  if (paymentStatus !== orderPaymentStatus) throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  if (paymentStatus === 'successful') return
+  if (!['pending', 'requires_action', 'failed', 'cancelled', 'expired'].includes(paymentStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+  if (!['pending', 'cancelled'].includes(orderStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+  if (['successful', 'refunded', 'partially_refunded'].includes(orderPaymentStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+}
+
 function isAuthoritativePaidSession(session) {
   return session.paymentStatus === 'paid'
 }
@@ -99,6 +181,29 @@ function evaluateWebhook(mode, event) {
   const markPaid =
     isPaidCheckoutEventType(event.type) && isAuthoritativePaidSession(event.data.object)
   return { rejected: false, markPaid, reason: null }
+}
+
+function processVerifiedWebhook(mode, event, payment, order, seenIds) {
+  const session = event?.data?.object
+  assertSessionMatchesMode(mode, session)
+  if (seenIds.has(event.id)) return { processed: false, duplicate: true, paymentStatus: payment.status }
+  assertSessionMatchesPayment(mode, session, payment, order)
+  if (isPaidCheckoutEventType(event.type) && isAuthoritativePaidSession(session)) {
+    assertPaymentCanBeMarkedSuccessful(payment.status, order.status, order.payment_status)
+    seenIds.add(event.id)
+    return { processed: true, duplicate: false, paymentStatus: 'successful' }
+  }
+  seenIds.add(event.id)
+  return { processed: true, duplicate: false, paymentStatus: payment.status }
+}
+
+function reconcilePaymentStatus(mode, session, payment, order) {
+  assertSessionMatchesPayment(mode, session, payment, order)
+  if (session.paymentStatus === 'paid') {
+    assertPaymentCanBeMarkedSuccessful(payment.status, order.status, order.payment_status)
+    return 'successful'
+  }
+  return payment.status
 }
 
 function verifyXPaySignature(rawBody, header, secret, nowSeconds = Math.floor(Date.now() / 1000)) {
@@ -361,9 +466,6 @@ function cancelUnpaid(state, qty = 1) {
 }
 
 // 12) Minor units
-function egpToMinorUnits(amount) {
-  return Math.round(amount * 100)
-}
 assert.equal(egpToMinorUnits(1499), 149900)
 assert.equal(egpToMinorUnits(10.5), 1050)
 
@@ -456,6 +558,183 @@ assert.equal(egpToMinorUnits(10.5), 1050)
   const isolated = evaluateWebhook('test', hmacOk.event)
   assert.equal(isolated.rejected, true)
   assert.equal(isolated.markPaid, false)
+}
+
+// 14) Verified payment evidence and fail-closed amount/currency checks
+function makeEvidence(mode = 'live') {
+  const sessionId = mode === 'live' ? 'cs_live_1' : 'cs_test_1'
+  const session = {
+    id: sessionId,
+    livemode: mode === 'live',
+    status: 'complete',
+    paymentStatus: 'paid',
+    amountTotal: 12345,
+    currency: 'EGP',
+    metadata: {
+      athar_payment_id: 'pay_1',
+      athar_order_id: 'order_1',
+      athar_mode: mode,
+    },
+  }
+  const payment = {
+    id: 'pay_1',
+    order_id: 'order_1',
+    provider: 'xpay',
+    status: 'pending',
+    amount: '123.45',
+    currency: 'EGP',
+    provider_session_id: sessionId,
+    metadata: { mode },
+  }
+  const order = {
+    id: 'order_1',
+    status: 'pending',
+    payment_method: 'xpay',
+    payment_status: 'pending',
+    total: '123.45',
+  }
+  return { session, payment, order }
+}
+
+assert.equal(egpToMinorUnits('123.45'), 12345)
+assert.equal(egpToMinorUnits(10.5), 1050)
+assert.throws(() => egpToMinorUnits('123.456'), /INVALID_AMOUNT/)
+assert.throws(() => egpToMinorUnits('-1.00'), /INVALID_AMOUNT/)
+
+{
+  const valid = makeEvidence()
+  assert.equal(assertSessionMatchesPayment('live', ...Object.values(valid)), 12345)
+  assert.equal(reconcilePaymentStatus('live', valid.session, valid.payment, valid.order), 'successful')
+
+  const noAmount = makeEvidence()
+  noAmount.session.amountTotal = undefined
+  assert.throws(
+    () => processVerifiedWebhook('live', { id: 'evt_missing_amount', type: 'checkout.session.completed', data: { object: noAmount.session } }, noAmount.payment, noAmount.order, new Set()),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+  assert.throws(
+    () => reconcilePaymentStatus('live', noAmount.session, noAmount.payment, noAmount.order),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+
+  const wrongAmount = makeEvidence()
+  wrongAmount.session.amountTotal = 12344
+  assert.throws(
+    () => processVerifiedWebhook('live', { id: 'evt_wrong_amount', type: 'checkout.session.completed', data: { object: wrongAmount.session } }, wrongAmount.payment, wrongAmount.order, new Set()),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+
+  const missingCurrency = makeEvidence()
+  missingCurrency.session.currency = undefined
+  assert.throws(
+    () => reconcilePaymentStatus('live', missingCurrency.session, missingCurrency.payment, missingCurrency.order),
+    /XPAY_CURRENCY_MISMATCH/,
+  )
+
+  const fractionalAmount = makeEvidence()
+  fractionalAmount.session.amountTotal = 12345.5
+  assert.throws(
+    () => reconcilePaymentStatus('live', fractionalAmount.session, fractionalAmount.payment, fractionalAmount.order),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+
+  const wrongCurrency = makeEvidence()
+  wrongCurrency.session.currency = 'USD'
+  assert.throws(
+    () => processVerifiedWebhook('live', { id: 'evt_wrong_currency', type: 'checkout.session.completed', data: { object: wrongCurrency.session } }, wrongCurrency.payment, wrongCurrency.order, new Set()),
+    /XPAY_CURRENCY_MISMATCH/,
+  )
+
+  const wrongOwner = makeEvidence()
+  wrongOwner.session.id = 'cs_live_other'
+  assert.throws(
+    () => reconcilePaymentStatus('live', wrongOwner.session, wrongOwner.payment, wrongOwner.order),
+    /XPAY_SESSION_OWNERSHIP_MISMATCH/,
+  )
+
+  const wrongMetadataOwner = makeEvidence()
+  wrongMetadataOwner.session.metadata.athar_payment_id = 'pay_other'
+  assert.throws(
+    () => processVerifiedWebhook('live', { id: 'evt_wrong_owner', type: 'checkout.session.completed', data: { object: wrongMetadataOwner.session } }, wrongMetadataOwner.payment, wrongMetadataOwner.order, new Set()),
+    /XPAY_SESSION_OWNERSHIP_MISMATCH/,
+  )
+
+  const wrongMode = makeEvidence('test')
+  assert.throws(
+    () => reconcilePaymentStatus('live', wrongMode.session, wrongMode.payment, wrongMode.order),
+    /XPAY_SESSION_MODE_MISMATCH/,
+  )
+
+  const storedTestAttempt = makeEvidence()
+  storedTestAttempt.payment.metadata.mode = 'test'
+  assert.throws(
+    () => reconcilePaymentStatus('live', storedTestAttempt.session, storedTestAttempt.payment, storedTestAttempt.order),
+    /XPAY_PAYMENT_MODE_MISMATCH/,
+  )
+
+  const metadataBoundAttempt = makeEvidence()
+  metadataBoundAttempt.payment.provider_session_id = null
+  assert.equal(
+    assertSessionMatchesPayment('live', metadataBoundAttempt.session, metadataBoundAttempt.payment, metadataBoundAttempt.order),
+    12345,
+  )
+  metadataBoundAttempt.session.metadata.athar_order_id = 'order_other'
+  assert.throws(
+    () => reconcilePaymentStatus('live', metadataBoundAttempt.session, metadataBoundAttempt.payment, metadataBoundAttempt.order),
+    /XPAY_SESSION_OWNERSHIP_MISMATCH/,
+  )
+
+  const inconsistentOrder = makeEvidence()
+  inconsistentOrder.order.total = '123.44'
+  assert.throws(
+    () => reconcilePaymentStatus('live', inconsistentOrder.session, inconsistentOrder.payment, inconsistentOrder.order),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+
+  const zeroAmount = makeEvidence()
+  zeroAmount.session.amountTotal = 0
+  zeroAmount.payment.amount = '0.00'
+  zeroAmount.order.total = '0.00'
+  assert.throws(
+    () => reconcilePaymentStatus('live', zeroAmount.session, zeroAmount.payment, zeroAmount.order),
+    /XPAY_AMOUNT_MISMATCH/,
+  )
+
+  const progressedOrder = makeEvidence()
+  progressedOrder.order.status = 'shipped'
+  assert.throws(
+    () => reconcilePaymentStatus('live', progressedOrder.session, progressedOrder.payment, progressedOrder.order),
+    /XPAY_PAYMENT_STATE_MISMATCH/,
+  )
+}
+
+// 15) Verified webhook duplicates are idempotent; invalid evidence is not recorded
+{
+  const evidence = makeEvidence()
+  const seen = new Set()
+  const event = {
+    id: 'evt_verified_paid',
+    type: 'checkout.session.completed',
+    data: { object: evidence.session },
+  }
+  const first = processVerifiedWebhook('live', event, evidence.payment, evidence.order, seen)
+  evidence.payment.status = 'successful'
+  evidence.order.status = 'confirmed'
+  evidence.order.payment_status = 'successful'
+  const duplicate = processVerifiedWebhook('live', event, evidence.payment, evidence.order, seen)
+  assert.equal(first.paymentStatus, 'successful')
+  assert.equal(duplicate.duplicate, true)
+  assert.equal(duplicate.paymentStatus, 'successful')
+  assert.equal(seen.size, 1)
+
+  const invalid = makeEvidence()
+  invalid.session.currency = 'USD'
+  const invalidSeen = new Set()
+  assert.throws(
+    () => processVerifiedWebhook('live', { ...event, id: 'evt_invalid_paid', data: { object: invalid.session } }, invalid.payment, invalid.order, invalidSeen),
+    /XPAY_CURRENCY_MISMATCH/,
+  )
+  assert.equal(invalidSeen.size, 0)
 }
 
 console.log('xpay signature + mode guards + webhook/stock idempotency: OK')

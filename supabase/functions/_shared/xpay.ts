@@ -182,11 +182,137 @@ export function isPaidCheckoutEventType(eventType: string): boolean {
   )
 }
 
-export function egpToMinorUnits(amount: number): number {
-  if (!Number.isFinite(amount) || amount < 0) {
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+export function assertPaymentModeMatches(
+  mode: XPayMode,
+  payment: { provider_session_id: string | null; metadata: unknown },
+): void {
+  if (asRecord(payment.metadata).mode !== mode) {
+    throw new Error('XPAY_PAYMENT_MODE_MISMATCH')
+  }
+  if (payment.provider_session_id) {
+    assertSessionMatchesMode(mode, { id: payment.provider_session_id })
+  }
+}
+
+export function egpToMinorUnits(amount: number | string): number {
+  const decimal = typeof amount === 'number' ? String(amount) : amount.trim()
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(decimal)
+  if (!match) {
     throw new Error('INVALID_AMOUNT')
   }
-  return Math.round(amount * 100)
+
+  const minor = BigInt(match[1]) * 100n + BigInt((match[2] ?? '').padEnd(2, '0'))
+  if (minor > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('INVALID_AMOUNT')
+  }
+  return Number(minor)
+}
+
+export function assertSessionMatchesPayment(
+  mode: XPayMode,
+  session: XPayCheckoutSession,
+  payment: {
+    id: string
+    order_id: string
+    provider: string
+    status: string
+    amount: number | string
+    currency: string | null
+    provider_session_id: string | null
+    metadata: unknown
+  },
+  order: {
+    id: string
+    status: string
+    payment_method: string
+    payment_status: string
+    total: number | string
+  },
+): number {
+  assertSessionMatchesMode(mode, session)
+  assertPaymentModeMatches(mode, payment)
+
+  if (
+    payment.provider !== 'xpay' ||
+    payment.order_id !== order.id ||
+    order.payment_method !== 'xpay'
+  ) {
+    throw new Error('XPAY_PAYMENT_OWNERSHIP_MISMATCH')
+  }
+
+  const sessionMetadata = session.metadata ?? {}
+  const expectedMetadata = {
+    athar_payment_id: payment.id,
+    athar_order_id: order.id,
+    athar_mode: mode,
+  }
+  for (const [key, expected] of Object.entries(expectedMetadata)) {
+    const actual = sessionMetadata[key]
+    if (actual != null && actual !== expected) {
+      throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+    }
+  }
+
+  if (payment.provider_session_id) {
+    if (session.id !== payment.provider_session_id) {
+      throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+    }
+  } else if (
+    sessionMetadata.athar_payment_id !== payment.id ||
+    sessionMetadata.athar_order_id !== order.id ||
+    sessionMetadata.athar_mode !== mode
+  ) {
+    throw new Error('XPAY_SESSION_OWNERSHIP_MISMATCH')
+  }
+
+  const paymentCurrency = payment.currency?.trim().toUpperCase()
+  const sessionCurrency = session.currency?.trim().toUpperCase()
+  if (!paymentCurrency || paymentCurrency !== 'EGP' || sessionCurrency !== paymentCurrency) {
+    throw new Error('XPAY_CURRENCY_MISMATCH')
+  }
+
+  if (typeof session.amountTotal !== 'number' || !Number.isSafeInteger(session.amountTotal)) {
+    throw new Error('XPAY_AMOUNT_MISMATCH')
+  }
+
+  const paymentAmountMinor = egpToMinorUnits(payment.amount)
+  const orderAmountMinor = egpToMinorUnits(order.total)
+  if (
+    paymentAmountMinor <= 0 ||
+    paymentAmountMinor !== orderAmountMinor ||
+    session.amountTotal !== paymentAmountMinor
+  ) {
+    throw new Error('XPAY_AMOUNT_MISMATCH')
+  }
+
+  return paymentAmountMinor
+}
+
+export function assertPaymentCanBeMarkedSuccessful(
+  paymentStatus: string,
+  orderStatus: string,
+  orderPaymentStatus: string,
+): void {
+  if (paymentStatus !== orderPaymentStatus) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+  if (paymentStatus === 'successful') return
+
+  if (!['pending', 'requires_action', 'failed', 'cancelled', 'expired'].includes(paymentStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+  if (!['pending', 'cancelled'].includes(orderStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
+  if (['successful', 'refunded', 'partially_refunded'].includes(orderPaymentStatus)) {
+    throw new Error('XPAY_PAYMENT_STATE_MISMATCH')
+  }
 }
 
 function timingSafeEqualHex(a: string, b: string): boolean {

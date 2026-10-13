@@ -1,6 +1,8 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
 import {
+  assertPaymentCanBeMarkedSuccessful,
+  assertSessionMatchesPayment,
   mapSessionToInternalStatus,
   requireSecretKeyForMode,
   resolveXpayMode,
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
     let query = supabase
       .from('payments')
       .select(
-        'id, order_id, status, amount, currency, provider_session_id, provider_status, provider_payment_status, guest_token',
+        'id, order_id, provider, status, amount, currency, provider_session_id, provider_status, provider_payment_status, guest_token, metadata',
       )
       .eq('guest_token', guestToken)
       .eq('provider', 'xpay')
@@ -93,10 +95,16 @@ Deno.serve(async (req) => {
           payment.provider_session_id,
           xpayMode,
         )
+        assertSessionMatchesPayment(xpayMode, session, payment, order)
+        assertPaymentCanBeMarkedSuccessful(
+          payment.status,
+          order.status,
+          order.payment_status,
+        )
         const mapped = mapSessionToInternalStatus(session)
 
         if (mapped === 'successful' && session.paymentStatus === 'paid') {
-          await supabase.rpc('mark_xpay_order_paid', {
+          const { error: paidError } = await supabase.rpc('mark_xpay_order_paid', {
             p_payment_id: payment.id,
             p_provider_session_id: session.id,
             p_provider_payment_intent_id:
@@ -104,18 +112,20 @@ Deno.serve(async (req) => {
             p_provider_status: session.status ?? null,
             p_provider_payment_status: session.paymentStatus ?? null,
           })
+          if (paidError) throw paidError
           paymentStatus = 'successful'
         } else if (mapped === 'expired') {
-          await supabase.rpc('cancel_unpaid_xpay_order', {
+          const { error: cancelError } = await supabase.rpc('cancel_unpaid_xpay_order', {
             p_payment_id: payment.id,
             p_payment_status: 'expired',
             p_provider_session_id: session.id,
             p_provider_status: session.status ?? null,
             p_provider_payment_status: session.paymentStatus ?? null,
           })
+          if (cancelError) throw cancelError
           paymentStatus = 'expired'
         } else if (mapped === 'requires_action' && paymentStatus === 'pending') {
-          await supabase
+          const { error: paymentUpdateError } = await supabase
             .from('payments')
             .update({
               status: 'requires_action',
@@ -123,10 +133,12 @@ Deno.serve(async (req) => {
               provider_payment_status: session.paymentStatus ?? null,
             })
             .eq('id', payment.id)
-          await supabase
+          if (paymentUpdateError) throw paymentUpdateError
+          const { error: orderUpdateError } = await supabase
             .from('orders')
             .update({ payment_status: 'requires_action' })
             .eq('id', order.id)
+          if (orderUpdateError) throw orderUpdateError
           paymentStatus = 'requires_action'
         } else {
           await supabase
