@@ -1,6 +1,7 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, storefrontBaseUrl } from '../_shared/supabaseAdmin.ts'
 import {
+  XPayUpstreamError,
   assertPaymentCanBeMarkedSuccessful,
   assertPaymentModeMatches,
   assertSessionMatchesPayment,
@@ -435,6 +436,20 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN_ERROR'
 
+    // Log only sanitized upstream diagnostics; never log credentials, headers, or raw payloads.
+    if (error instanceof XPayUpstreamError) {
+      console.error('xpay upstream session rejection:', {
+        status: error.details.status,
+        type: error.details.type,
+        code: error.details.code,
+        param: error.details.param,
+        requestId: error.details.requestId,
+        message: error.details.message,
+      })
+    } else {
+      console.error('xpay-create-payment error:', message)
+    }
+
     // Compensate reserved stock if we created order/payment but session setup failed.
     try {
       if (createdPaymentId) {
@@ -476,7 +491,6 @@ Deno.serve(async (req) => {
         500,
       )
     }
-    console.error('xpay-create-payment error:', message)
     return jsonResponse(
       req,
       { error: 'PAYMENT_START_FAILED', message: 'تعذر بدء الدفع الإلكتروني. حاولي مرة أخرى.' },
