@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-21T22:51:48.296Z",
+  "generatedAt": "2026-10-21T23:38:06.284Z",
   "baseHead": "f75fb814e055ee5350d9a42e200000d1b384b809",
   "remote": "https://github.com/Mazen-Mahmoud-Mohamed/athar-store.git",
   "productionModified": false,
   "deployed": false,
   "productionBackupCreated": true,
   "productionBackupRestoreTested": false,
-  "readiness": "Local role compatibility restore passed; actual production archive awaits owner passphrase and GitHub write authentication",
+  "readiness": "Statement-traced single-prompt repair session tested on PostgreSQL 17.11; actual encrypted archive awaits local unlock",
   "tests": {
     "postgres": "17.11",
     "regressionGroups": 62,
@@ -16,11 +16,11 @@
     "allEdgeWithTransportStub": "PASS with noImplicitAny=false for existing SDK-any item callbacks",
     "lint": "PASS; 10 existing warnings",
     "encryptedSyntheticRestore": "PASS; real pg_restore, count/stock/migration comparison; wrong-key and tamper rejection",
-    "productionRestore": "BLOCKED: original verbatim role replay exited 3; corrected bootstrap awaits actual archive passphrase",
+    "productionRestore": "BLOCKED: latest prior attempt failed in compatibility parser with ERR_ASSERTION before SQL; corrected traced workflow not yet run against actual archive",
     "hostedScheduler": "NOT RUN",
     "backupFollowup": "PASS: complete native archive decoding and actual synthetic restore on PostgreSQL 17.11",
     "backupFailureFix": "PASS: native error/exit redaction and launch handling, strict production TLS without password, native synthetic dump/roles/decode/actual restore; no full order suite rerun",
-    "isolatedRecoveryVerifier": "PASS: PostgreSQL 17.11 synthetic provider-style grantor failure 42501, normalized memberships with ADMIN/INHERIT/SET verification, actual restore/RLS and migration 012-014 rehearsal"
+    "isolatedRecoveryVerifier": "PASS: exact CREATE/ALTER SQLSTATE and statement/source line; rollback; 42501 GRANTED BY probe and implicit grantor repair; effective multiple-grantor option union; actual synthetic encrypted restore/RLS; migrations 012-014 rehearsal; EFS cleanup"
   },
   "functionDeployments": [
     "xpay-webhook",
@@ -237,23 +237,23 @@
     },
     {
       "path": "scripts/verify-production-backup.ps1",
-      "bytes": 3863,
-      "sha256": "af8f442920a51f5ea0d474da68341f8ad26a03b3c51b88c3183b16953ccb2713"
+      "bytes": 5526,
+      "sha256": "d901806d1eed0f063d2db26770d081cf52d2ef214f992556e2eef05d15add836"
     },
     {
       "path": "scripts/verify-production-backup.mjs",
-      "bytes": 10803,
-      "sha256": "f78d00ff20f6f9a36f3596eeca3248444c477cd26f917e7e432067f84fbd27e6"
+      "bytes": 11405,
+      "sha256": "31dce4b690338bb336626d5e1fffbfcc43bd4379037456b5a37b7d7f3f8c2d82"
     },
     {
       "path": "scripts/test-production-restore.mjs",
-      "bytes": 6420,
-      "sha256": "da59b8e31597ed33335e0b909e5c15db129581571fd48630c5f9a2459ff0476e"
+      "bytes": 8667,
+      "sha256": "7ff736e99f438f34362e00debf12fb2e5e17ae4613ad30556bf9bca0ffbc3e0a"
     },
     {
       "path": "scripts/restore-role-compatibility.mjs",
-      "bytes": 3044,
-      "sha256": "7e550b0d41701bb8f2409dfc87bf72df117fed7fea77866066a64e603789c193"
+      "bytes": 268,
+      "sha256": "6fabccada066fbe98c6605077eb271212f1e6bf4d17087c052530ee381779bc0"
     },
     {
       "path": "scripts/diagnose-restore-roles.mjs",
@@ -262,8 +262,13 @@
     },
     {
       "path": "docs/restore-role-compatibility-2026-10-22.md",
-      "bytes": 1858,
-      "sha256": "b29d39cfe1d490433930c092fe13931ae4fb0690699aecc55c4fc670a7f3fa03"
+      "bytes": 2773,
+      "sha256": "8cab16a6b324a24cb0b268a366b95123b33fcaa1bdda0d48a5b35f7f214cdda0"
+    },
+    {
+      "path": "scripts/trace-role-restore.mjs",
+      "bytes": 8365,
+      "sha256": "e2e6097ebf22cbd1b0a692896d7492a41ed666657916eacddc8113ba1ee9ca0b"
     }
   ],
   "deltaThisPreparation": [
@@ -384,23 +389,23 @@
     },
     {
       "path": "scripts/verify-production-backup.ps1",
-      "bytes": 3863,
-      "sha256": "af8f442920a51f5ea0d474da68341f8ad26a03b3c51b88c3183b16953ccb2713"
+      "bytes": 5526,
+      "sha256": "d901806d1eed0f063d2db26770d081cf52d2ef214f992556e2eef05d15add836"
     },
     {
       "path": "scripts/verify-production-backup.mjs",
-      "bytes": 10803,
-      "sha256": "f78d00ff20f6f9a36f3596eeca3248444c477cd26f917e7e432067f84fbd27e6"
+      "bytes": 11405,
+      "sha256": "31dce4b690338bb336626d5e1fffbfcc43bd4379037456b5a37b7d7f3f8c2d82"
     },
     {
       "path": "scripts/test-production-restore.mjs",
-      "bytes": 6420,
-      "sha256": "da59b8e31597ed33335e0b909e5c15db129581571fd48630c5f9a2459ff0476e"
+      "bytes": 8667,
+      "sha256": "7ff736e99f438f34362e00debf12fb2e5e17ae4613ad30556bf9bca0ffbc3e0a"
     },
     {
       "path": "scripts/restore-role-compatibility.mjs",
-      "bytes": 3044,
-      "sha256": "7e550b0d41701bb8f2409dfc87bf72df117fed7fea77866066a64e603789c193"
+      "bytes": 268,
+      "sha256": "6fabccada066fbe98c6605077eb271212f1e6bf4d17087c052530ee381779bc0"
     },
     {
       "path": "scripts/diagnose-restore-roles.mjs",
@@ -409,8 +414,13 @@
     },
     {
       "path": "docs/restore-role-compatibility-2026-10-22.md",
-      "bytes": 1858,
-      "sha256": "b29d39cfe1d490433930c092fe13931ae4fb0690699aecc55c4fc670a7f3fa03"
+      "bytes": 2773,
+      "sha256": "8cab16a6b324a24cb0b268a366b95123b33fcaa1bdda0d48a5b35f7f214cdda0"
+    },
+    {
+      "path": "scripts/trace-role-restore.mjs",
+      "bytes": 8365,
+      "sha256": "e2e6097ebf22cbd1b0a692896d7492a41ed666657916eacddc8113ba1ee9ca0b"
     }
   ],
   "preservation": {
@@ -426,7 +436,7 @@
     "migration012And013AndRouteScroll": "Verified unchanged against prior hashes"
   },
   "pending": [
-    "Owner runs corrected verify-production-backup.ps1 with existing encryption passphrase; GitHub interactive login required for release-branch push",
+    "Owner runs verify-production-backup.ps1 -RepairSession with existing passphrase once; connected GitHub app write access already verified",
     "Production encrypted backup authenticated and actual isolated recovery verified",
     "Provider enabled non-2xx retry/retention and cutover-window replay verified",
     "Approved deploy of four fail-closed Edge bundles followed by atomic migration transaction",

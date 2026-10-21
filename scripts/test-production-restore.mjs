@@ -9,9 +9,11 @@ import { once } from 'node:events'
 import { fileURLToPath } from 'node:url'
 import EmbeddedPostgres from 'embedded-postgres'
 import { runEncryptedTool } from './backup-process.mjs'
-import { compatibleRoles } from './restore-role-compatibility.mjs'
-assert.throws(()=>compatibleRoles('GRANT unexpected SQL;','athar_isolated_restore_owner'))
-assert.throws(()=>compatibleRoles('GRANT anon TO authenticated GRANTED BY postgres;\nGRANT anon TO authenticated GRANTED BY another;','athar_isolated_restore_owner'))
+import { roleStatements, restoreRolesTraced, verifyTracedMemberships } from './trace-role-restore.mjs'
+assert.equal(roleStatements("-- comment\nCREATE ROLE sample;\nALTER ROLE sample SET application_name TO 'a;b';").length,2)
+assert.equal(roleStatements("COMMENT ON ROLE sample IS $$multi;line\nvalue$$;")[0].type,'COMMENT ON ROLE')
+assert.throws(()=>roleStatements('\\connect production'),e=>e.safe.reason==='unsupported_psql_directive')
+assert.throws(()=>roleStatements("ALTER ROLE sample SET application_name TO 'unclosed"),e=>e.safe.reason==='unterminated_sql')
 const syntheticPassphrase='synthetic-restore-test-only-passphrase'
 const directory=await mkdtemp('D:/work/athar-test-temp/recovery-fixture-')
 const backup=path.resolve('D:/work/athar-backups',`selftest-${randomUUID()}`)
@@ -24,11 +26,34 @@ const port=probe.address().port
 await new Promise(resolve=>probe.close(resolve))
 const password=randomUUID()
 const server=new EmbeddedPostgres({databaseDir:path.join(directory,'cluster'),port,user:'postgres',password,
-  persistent:true,initdbFlags:['--encoding=UTF8'],postgresFlags:['-h','127.0.0.1'],onLog(){},onError(){}})
+  persistent:true,initdbFlags:['--encoding=UTF8'],postgresFlags:['-h','127.0.0.1',
+    '-c','log_statement=none','-c','log_min_error_statement=panic'],onLog(){},onError(){}})
 let db
 try {
   await server.initialise(); await server.start()
   db=server.getPgClient('postgres','127.0.0.1'); await db.connect()
+  const owner='athar_isolated_restore_owner'
+  await db.query(`create role ${owner} superuser; set role ${owner}`)
+  let captured=0
+  for(const [sql,state,type] of [
+    ['CREATE ROLE recovery_probe;\nCREATE ROLE recovery_probe;','42710','CREATE ROLE'],
+    ['CREATE ROLE recovery_probe;\nALTER ROLE recovery_probe SET not_a_real_parameter TO 1;','42704','ALTER ROLE'],
+  ]) {
+    await assert.rejects(restoreRolesTraced(db,sql,{owner,onPrivateError:async()=>{captured++}}),
+      e=>e.safe.sqlState===state&&e.safe.statementIndex===2&&e.safe.sourceLine===2&&e.safe.statementType===type)
+    assert.equal((await db.query("select count(*)::int as n from pg_roles where rolname='recovery_probe'")).rows[0].n,0)
+  }
+  assert.equal(captured,2)
+  const permissionPlan=await restoreRolesTraced(db,`CREATE ROLE trace_grantor;
+CREATE ROLE trace_parent;
+CREATE ROLE trace_member;
+GRANT trace_parent TO trace_member WITH INHERIT FALSE, SET TRUE GRANTED BY trace_grantor;`,
+    {owner,onPrivateError:async()=>{captured++}})
+  assert.equal(permissionPlan.originalGrantorFailures[0].sqlState,'42501')
+  assert.equal(permissionPlan.originalGrantorFailures[0].statementIndex,4)
+  await verifyTracedMemberships(db,permissionPlan)
+  await db.query('drop role trace_grantor,trace_parent,trace_member')
+  await db.query(`reset role; drop role ${owner}`)
   await db.query(`create role anon;create role authenticated;create role service_role bypassrls;
     create role authenticator;create role supabase_auth_admin;create role supabase_storage_admin;
     create schema auth;create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}');
@@ -40,10 +65,16 @@ try {
   // Platform bootstrap can leave a grantor that no longer has ADMIN authority.
   // A verbatim pg_dumpall replay cannot recreate that provenance on vanilla PG.
   await db.query(`create role managed_grantor superuser;
+    grant authenticated to managed_grantor with admin true, inherit false, set false;
     set role managed_grantor;
-    grant authenticated to authenticator with inherit false, set true;
-    reset role; alter role managed_grantor nosuperuser;`)
-  await assert.rejects(db.query('grant authenticated to authenticator with inherit false, set true granted by managed_grantor'),
+    grant authenticated to authenticator with inherit false, set true granted by managed_grantor;
+    reset role; alter role managed_grantor nosuperuser;
+    create role managed_second_grantor superuser;
+    grant authenticated to managed_second_grantor with admin true, inherit false, set false;
+    set role managed_second_grantor;
+    grant authenticated to authenticator with admin true, inherit true, set false granted by managed_second_grantor;
+    reset role; alter role managed_second_grantor nosuperuser;`)
+  await assert.rejects(db.query('grant authenticated to authenticator with inherit false, set true granted by anon'),
     error=>error.code==='42501')
   for(const name of ['20261003000001_initial_schema','20261003000002_rls','20261003000004_guest_order_confirmation',
     '20261003000005_admin_order_status_workflow','20261004000008_xpay_payments','20261004000009_xpay_service_role_rpc_grants',
@@ -70,9 +101,10 @@ try {
   if(code!==0) { console.log(JSON.stringify({syntheticFailure:report})); throw new Error('Synthetic recovery verifier failed') }
   assert.equal(report.actualRestore,true);assert.equal(report.isolatedMigrationRehearsal,true);assert.equal(report.temporaryDataRemoved,true)
   assert.ok(report.roleCompatibility.membershipsVerified>=1)
+  assert.ok(report.roleCompatibility.combinedMemberships>=1)
   assert.match(report.unprivilegedRls,/^PASS:/)
   assert.deepEqual(report.rehearsedMigrations,['20261020000012','20261021000013','20261021000014'])
-  console.log('PASS production recovery verifier: encrypted synthetic roles/data, real restore, invariants, atomic migration rehearsal, and EFS cleanup')
+  console.log('PASS recovery verifier: CREATE/ALTER failure SQLSTATE and exact source location, transactional rollback, duplicate-grantor effective options, encrypted synthetic real restore, RLS, migration rehearsal and EFS cleanup')
 } finally {
   if(db)await db.end();await server.stop()
   assert.ok(directory.startsWith('D:/work/athar-test-temp/recovery-fixture-'))

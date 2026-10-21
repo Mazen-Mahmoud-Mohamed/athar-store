@@ -12,7 +12,7 @@ import EmbeddedPostgres from 'embedded-postgres'
 import { decryptedBackup, verifyEncryptedBackup, encryptBackup } from './encrypted-backup.mjs'
 import { waitForBackupChild, classifyBackupFailure } from './backup-process.mjs'
 import { prepareReleaseSql } from './order-release-sql.mjs'
-import { compatibleRoles, verifyRoleCompatibility } from './restore-role-compatibility.mjs'
+import { restoreRolesTraced, verifyTracedMemberships } from './trace-role-restore.mjs'
 
 const root=path.resolve(process.env.ATHAR_RESTORE_DIRECTORY ?? '')
 const source=path.resolve(process.env.ATHAR_BACKUP_DIRECTORY ?? '')
@@ -29,6 +29,7 @@ const attributes=Number(execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0
 assert.ok((attributes & 16384)!==0,'Restore directory must be EFS encrypted')
 const bin='D:/work/athar-pg17-client/pgsql/bin'
 const report={backupDirectory:source,projectRef:'rotcgsayspiphcisepmu',productionModified:false,
+  attemptId:process.env.ATHAR_RESTORE_ATTEMPT_ID ?? null,
   actualRestore:false,isolatedMigrationRehearsal:false,temporaryDataRemoved:false,stage:'integrity'}
 let server,client
 const password=randomUUID()
@@ -83,22 +84,29 @@ try {
   await new Promise(resolve=>probe.close(resolve))
   const owner='athar_isolated_restore_owner'
   server=new EmbeddedPostgres({databaseDir:path.join(root,'cluster'),port,user:owner,password,
-    persistent:true,initdbFlags:['--encoding=UTF8'],postgresFlags:['-h','127.0.0.1'],onLog(){},onError(){}})
+    persistent:true,initdbFlags:['--encoding=UTF8'],postgresFlags:['-h','127.0.0.1',
+      '-c','log_statement=none','-c','log_min_error_statement=panic'],onLog(){},onError(){}})
   report.stage='initialize_local_cluster'
   await server.initialise(); await server.start()
   const connection=['--host','127.0.0.1','--port',String(port),'--username',owner,'--no-password']
   report.stage='restore_roles'
   const roleChunks=[]
   for await(const chunk of decryptedBackup(path.join(source,manifest.roles.file),passphrase)) roleChunks.push(chunk)
-  const rolePlan=compatibleRoles(Buffer.concat(roleChunks).toString('utf8'),owner)
-  await native('psql.exe',[...connection,'--dbname','postgres','-X','--set','ON_ERROR_STOP=1','--single-transaction'],
-    Readable.from([Buffer.from(rolePlan.sql)]))
+  const roleClient=server.getPgClient('postgres','127.0.0.1')
+  await roleClient.connect()
+  let rolePlan
+  try {
+    rolePlan=await restoreRolesTraced(roleClient,Buffer.concat(roleChunks).toString('utf8'),{owner,
+      onPrivateError:async details=>encryptBackup(Readable.from([Buffer.from(JSON.stringify(details))]),
+        path.join(source,`role-statement-${Date.now()}-${randomUUID()}.diagnostics.enc`),passphrase)})
+    report.roleCompatibility=await verifyTracedMemberships(roleClient,rolePlan)
+  } finally {await roleClient.end()}
   await server.createDatabase('athar_restore_verification')
   report.stage='restore_database'
   await native('pg_restore.exe',[...connection,'--dbname','athar_restore_verification','--exit-on-error','--single-transaction'],
     decryptedBackup(path.join(source,manifest.archive.file),passphrase))
   client=server.getPgClient('athar_restore_verification','127.0.0.1'); await client.connect()
-  report.roleCompatibility=await verifyRoleCompatibility(client,rolePlan.memberships)
+  await verifyTracedMemberships(client,rolePlan)
   report.stage='verify_restored_catalog_and_counts'
   report.snapshot=await aggregateSnapshot()
   assert.ok(report.snapshot.migrations.includes('20261004000011'),'Expected migration 011 missing')
@@ -127,7 +135,8 @@ try {
   report.isolatedMigrationRehearsal=true
   report.stage='complete'
 } catch(error) {
-  report.failure=error.safe ?? {category:'verification_failed',sqlState:error.code ?? null,message:'Isolated restore or metadata consistency check failed. No production changes were made.'}
+  report.failure=error.safe ?? {category:'verification_failed',sqlState:/^[0-9A-Z]{5}$/.test(error.code ?? '')?error.code:null,
+    internalCode:error.code==='ERR_ASSERTION'?'ASSERTION':null,message:'Isolated restore or metadata consistency check failed. No production changes were made.'}
   // Keep detailed error encrypted for private diagnosis, never terminal logs.
   await encryptBackup(Readable.from([Buffer.from(String(error.stack ?? error))]),path.join(source,`restore-verification-${Date.now()}.diagnostics.enc`),passphrase).catch(()=>{})
   process.exitCode=1
@@ -144,6 +153,7 @@ try {
   await writeFile(path.join(source,'restore-verification.json'),JSON.stringify(report,null,2),{mode:0o600})
   console.log(process.exitCode ? `Isolated restore blocked at ${report.stage}. See private restore-verification.json; production unchanged.`
     : 'PASS: actual isolated production-backup restore, counts/roles/RLS verification, atomic migration rehearsal, and encrypted temporary-data cleanup completed.')
+  if(process.exitCode)console.log(JSON.stringify({stage:report.stage,failure:report.failure,productionModified:false},null,2))
 }
 // embedded-postgres installs exit hooks; make an explicit failed status survive them.
 if(process.exitCode) process.exit(process.exitCode)

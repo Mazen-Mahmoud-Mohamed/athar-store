@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 param(
   [string]$BackupDirectory = 'D:\work\athar-backups\20261021-222206-96ea5a10',
-  [switch]$DiagnoseOnly
+  [switch]$DiagnoseOnly,
+  [switch]$RepairSession
 )
 $ErrorActionPreference='Stop'
 $BackupDirectory=[IO.Path]::GetFullPath($BackupDirectory)
@@ -14,6 +15,7 @@ foreach($entry in @($manifest.archive,$manifest.roles)) {
   $hash=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $BackupDirectory $entry.file)).Hash.ToLowerInvariant()
   if($hash -cne $entry.sha256) { throw 'Encrypted backup checksum mismatch; stop' }
 }
+function New-PrivateRestoreDirectory {
 if((Get-PSDrive D).Free -lt 2GB) { throw 'Insufficient D: space for isolated restore' }
 $restoreDirectory=Join-Path 'D:\work\athar-restore-checks' ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $restoreDirectory | Out-Null
@@ -29,7 +31,18 @@ $probe=Join-Path $restoreDirectory 'encryption-probe.txt'
 [IO.File]::WriteAllText($probe,'Synthetic encryption inheritance probe')
 if(-not ((Get-Item -LiteralPath $probe).Attributes -band [IO.FileAttributes]::Encrypted)) { throw 'EFS inheritance check failed' }
 Remove-Item -LiteralPath $probe
+return $restoreDirectory
+}
+$restoreDirectory=New-PrivateRestoreDirectory
 $secret=Read-Host 'Existing backup encryption passphrase (hidden; do not enter the database password)' -AsSecureString
+try {
+while($true) {
+$attemptId=[guid]::NewGuid().ToString('N')
+$codeFiles=@('verify-production-backup.mjs','trace-role-restore.mjs','order-release-sql.mjs',
+  '../supabase/migrations/20261020000012_order_inventory_and_payment_guards.sql',
+  '../supabase/migrations/20261021000013_xpay_refund_event_ledger.sql',
+  '../supabase/migrations/20261021000014_checkout_maintenance_and_webhook_inbox.sql') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$codeHash=($codeFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
 $start=[Diagnostics.ProcessStartInfo]::new()
 $start.FileName=(Get-Command node.exe -ErrorAction Stop).Source
 $start.UseShellExecute=$false
@@ -39,6 +52,7 @@ $start.ArgumentList.Add((Join-Path $PSScriptRoot $(if($DiagnoseOnly){'diagnose-r
 $start.Environment['ATHAR_RESTORE_DIRECTORY']=$restoreDirectory
 $start.Environment['ATHAR_BACKUP_DIRECTORY']=$BackupDirectory
 $start.Environment['ATHAR_BACKUP_PASSPHRASE']=[Net.NetworkCredential]::new('',$secret).Password
+$start.Environment['ATHAR_RESTORE_ATTEMPT_ID']=$attemptId
 $start.Environment['TEMP']=$restoreDirectory
 $start.Environment['TMP']=$restoreDirectory
 try {
@@ -50,10 +64,26 @@ try {
     return
   }
   $report=Get-Content -LiteralPath (Join-Path $BackupDirectory 'restore-verification.json') -Raw | ConvertFrom-Json
+  if($report.attemptId -cne $attemptId) { throw 'No report from this attempt; stale results rejected. Do not deploy.' }
   if($process.ExitCode -ne 0 -or -not $report.actualRestore -or -not $report.isolatedMigrationRehearsal -or -not $report.temporaryDataRemoved) {
+    if($RepairSession) {
+      Write-Host 'Repair session paused. Share only the SAFE failure JSON printed above. Do not share encrypted diagnostics or passphrases.'
+      Write-Host 'The passphrase remains in this local process only. After the local correction, type retry here; no second passphrase entry is needed.'
+      $choice=Read-Host 'Type retry after the correction, or stop to dispose of the passphrase'
+      if($choice -ceq 'retry') {
+        $newHash=($codeFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
+        if($newHash -ceq $codeHash) { throw 'Verifier code is unchanged; refusing to repeat the same failing attempt.' }
+        $restoreDirectory=New-PrivateRestoreDirectory
+        continue
+      }
+    }
     throw 'Isolated recovery verification failed. Do not deploy. See safe restore-verification.json in the backup directory.'
   }
+  break
 } finally {
   $start.Environment.Remove('ATHAR_BACKUP_PASSPHRASE') | Out-Null
+}
+}
+} finally {
   $secret.Dispose()
 }

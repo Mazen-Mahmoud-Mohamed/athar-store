@@ -1,30 +1,43 @@
 # Isolated application recovery compatibility
 
-The existing production encrypted backup is preserved. The previously observed
-native role replay exited with psql status 3; its original error remains encrypted.
-Do not claim its exact SQL cause has been confirmed before decrypting diagnostics.
+The latest actual-backup report contains ERR_ASSERTION at restore_roles, not a
+PostgreSQL SQLSTATE. The previous compatibility parser failed before executing
+the SQL. Its exact assertion is still encrypted; do not claim a particular source
+statement caused that assertion without evidence.
 
-The standalone verifier now explicitly normalizes membership grantor provenance
-to its unique local superuser. All original role declarations, attributes,
-settings, membership ADMIN/INHERIT/SET options, database ownership, ACLs and RLS
-remain in the restore. Unsupported membership syntax or duplicate memberships
-with different grantors fail closed for review. Every normalized membership's
-options are compared against pg_auth_members after the restore. No application
-role is promoted to overcome a restore error.
+A separate concrete defect in the previous rewrite was reproduced on PostgreSQL
+17.11: explicit GRANTED BY naming a superuser can fail with 42501/check_role_grantor
+when that named grantor lacks the required ADMIN membership. The new executor
+uses the isolated bootstrap superuser's implicit grantor, without extra grants
+to application roles. All role declarations, attributes, settings, ownership,
+database ACLs and RLS are restored without skipping failed statements.
 
-This proves application recovery compatibility, not exact managed infrastructure
-recovery or membership revocation provenance. Supabase infrastructure, Storage
-object bytes, Auth configuration, Edge secrets and external provider settings
-remain outside this logical recovery test and must be preserved in place.
+The SQL lexer handles comments, multiline quoted strings, quoted semicolons and
+pg_dump restrict directives. Each executed statement has a source line, index,
+fixed operation type and hash. Failures expose only those fields, SQLSTATE,
+fixed reason and server routine. Raw statement/error details are encrypted with
+the existing backup passphrase; they are never printed or written as plaintext.
 
-The synthetic PostgreSQL 17.11 fixture models a bootstrap grantor that subsequently
-lost superuser/ADMIN authority. Verbatim membership replay must fail with SQLSTATE
-42501; normalized restore must pass with the original INHERIT false/SET true
-membership, restored ownership and ACLs, unprivileged RLS checks, migration
-012/013/014 rehearsal and EFS temporary-directory cleanup.
+Original membership statements are probed in savepoints and rolled back. Only
+the known 42501 grantor incompatibility is eligible for normalization. Multiple
+grantors on one role/member pair are explicitly combined using the union of
+their ADMIN, INHERIT and SET options. The resulting effective options are checked
+against pg_auth_members. Grantor-specific revocation provenance is not recreated.
+Unsupported syntax or unrelated SQL errors stop the attempt with exact location.
 
-Production restore is still pending the owner's existing encryption passphrase.
-Run verify-production-backup.ps1 normally; DiagnoseOnly is optional and is not
-required to exercise the new compatibility bootstrap. Never enter a passphrase
-in chat. No new backup, production SQL, functions or website deployment was
-performed while preparing this change.
+Synthetic validation covers CREATE/ALTER failures with exact SQLSTATE and source
+location, full rollback, a failing grantor probe, distinct grantors with different
+options, actual encrypted database restore, unprivileged RLS, migration 012-014
+rehearsal, and EFS temporary-directory cleanup on PostgreSQL 17.11.
+
+Run verify-production-backup.ps1 -RepairSession. The wrapper prompts for the
+existing encryption passphrase once and retains its SecureString only in the
+local parent process. A diagnostic stop leaves that session open for a local
+correction and retry in a fresh isolated cluster; unchanged-code retries are
+refused. Attempt IDs reject stale reports. No database password is needed.
+
+This is application recovery, not full Supabase infrastructure recovery. Storage
+object bytes, platform configuration, Auth settings and Edge secrets must remain
+preserved in the existing project. The production archive has not yet passed
+this corrected verifier; the owner must unlock it locally. No production write
+is permitted until actual recovery and webhook cutover safeguards pass.
