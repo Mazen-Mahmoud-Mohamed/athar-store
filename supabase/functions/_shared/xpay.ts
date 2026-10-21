@@ -22,8 +22,130 @@ export type XPayCheckoutSession = {
 export type XPayEvent = {
   id: string
   type: string
+  livemode?: boolean
   data?: {
-    object?: XPayCheckoutSession & Record<string, unknown>
+    object?: Record<string, unknown>
+  }
+}
+
+export function isRefundEventType(type: string): boolean {
+  return ['refund.created', 'refund.failed', 'charge.refunded'].includes(type)
+}
+
+/** Normalize only signed provider objects, never checkout-session-shaped refunds. */
+export function parseRefundEvent(mode: XPayMode, event: XPayEvent) {
+  const invalid = (): never => { throw new Error('XPAY_REFUND_INVALID') }
+  const identifier = (value: unknown, prefix: string): string => {
+    if (typeof value !== 'string' || !new RegExp(`^${prefix}_${mode}_[A-Za-z0-9_-]+$`).test(value)) return invalid()
+    return value
+  }
+  const money = (value: unknown): number => {
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) return invalid()
+    return value
+  }
+  if (!isRefundEventType(event.type) || event.livemode !== (mode === 'live')) return invalid()
+  identifier(event.id, 'evt')
+  const object = asRecord(event.data?.object)
+  const intentId = identifier(object.paymentIntentId, 'pi')
+  const refund = (value: unknown) => {
+    const row = asRecord(value)
+    const status = typeof row.status === 'string' ? row.status.toLowerCase() : ''
+    if (row.object !== 'refund' || row.currency !== 'EGP' ||
+        !['pending', 'requires_action', 'succeeded', 'failed', 'canceled'].includes(status) ||
+        row.paymentIntentId !== intentId) return invalid()
+    return { id: identifier(row.id, 're'), charge_id: identifier(row.chargeId, 'ch'),
+      payment_intent_id: intentId, amount_minor: money(row.amount), currency: 'EGP', status }
+  }
+  if (event.type !== 'charge.refunded') {
+    const row = refund(object)
+    if (event.type === 'refund.failed' && row.status !== 'failed') return invalid()
+    return { intentId, refunds: [row], chargeAmount: null }
+  }
+  const chargeId = identifier(object.id, 'ch')
+  const chargeAmount = money(object.amount)
+  const refunded = money(object.amountRefunded)
+  if (object.object !== 'charge' || object.currency !== 'EGP' ||
+      object.paid !== true || object.captured !== true ||
+      object.amountCaptured !== chargeAmount || refunded > chargeAmount) return invalid()
+  // API reference uses an array; the event guide also documents refunds.data.
+  const list = asRecord(object.refunds)
+  const values = Array.isArray(object.refunds) ? object.refunds : list.data
+  if (!Array.isArray(values) || !values.length || list.has_more === true) return invalid()
+  const refunds = values.map(refund)
+  if (new Set(refunds.map(row => row.id)).size !== refunds.length ||
+      refunds.some(row => row.charge_id !== chargeId) ||
+      refunds.filter(row => row.status === 'succeeded').reduce((sum, row) => sum + row.amount_minor, 0) !== refunded) return invalid()
+  return { intentId, refunds, chargeAmount }
+}
+
+export type XPayUpstreamErrorDetails = {
+  status: number
+  type?: string
+  code?: string
+  param?: string
+  requestId?: string
+  message?: string
+}
+
+export class XPayUpstreamError extends Error {
+  readonly details: XPayUpstreamErrorDetails
+
+  constructor(details: XPayUpstreamErrorDetails) {
+    super('XPAY_SESSION_CREATE_FAILED')
+    this.name = 'XPayUpstreamError'
+    this.details = details
+  }
+}
+
+function safeErrorCode(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[A-Za-z0-9_.-]{1,100}$/.test(value)
+    ? value
+    : undefined
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function sanitizeUpstreamMessage(message: string, sensitiveValues: string[]): string {
+  let safe = message
+  for (const value of sensitiveValues) {
+    const sensitive = value.trim()
+    if (sensitive.length >= 3) {
+      safe = safe.replace(new RegExp(escapeRegExp(sensitive), 'gi'), '[redacted]')
+    }
+  }
+  return safe
+    .replace(/\bsk_(?:test|live)_[A-Za-z0-9_-]+\b/gi, '[redacted-secret]')
+    .replace(/\bwhsec_[A-Za-z0-9_-]+\b/gi, '[redacted-secret]')
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+    .replace(/\+?\d[\d\s().-]{6,}\d/g, '[redacted-phone]')
+    .replace(/[\r\n\t]+/g, ' ')
+    .slice(0, 240)
+}
+
+export function parseXPayUpstreamError(
+  status: number,
+  payload: unknown,
+  sensitiveValues: string[] = [],
+): XPayUpstreamErrorDetails {
+  const root = asRecord(payload)
+  const error = asRecord(root.error)
+  const requestId = safeErrorCode(root.request_id ?? error.request_id)
+  const message = typeof error.message === 'string'
+    ? error.message
+    : typeof root.message === 'string'
+      ? root.message
+      : undefined
+
+  return {
+    status,
+    type: safeErrorCode(error.type),
+    code: safeErrorCode(error.code),
+    param: safeErrorCode(error.param),
+    requestId,
+    ...(message ? { message: sanitizeUpstreamMessage(message, sensitiveValues) } : {}),
   }
 }
 
@@ -462,17 +584,15 @@ export async function createCheckoutSession(input: {
     body: JSON.stringify(body),
   })
 
-  const payload = await res.json().catch(() => ({}))
+  const payload: unknown = await res.json().catch(() => null)
   if (!res.ok) {
-    const message =
-      typeof (payload as { message?: string }).message === 'string'
-        ? (payload as { message: string }).message
-        : 'XPAY_SESSION_CREATE_FAILED'
-    throw new Error(message)
+    throw new XPayUpstreamError(
+      parseXPayUpstreamError(res.status, payload, [input.customerName ?? '', input.customerPhone ?? '']),
+    )
   }
 
-  const session = payload as XPayCheckoutSession
-  if (!session.id || !session.url) {
+  const session = payload as XPayCheckoutSession | null
+  if (!session?.id || !session.url) {
     throw new Error('XPAY_SESSION_INVALID_RESPONSE')
   }
   assertSessionMatchesMode(input.mode, session)

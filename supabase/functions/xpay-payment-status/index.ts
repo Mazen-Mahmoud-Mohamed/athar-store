@@ -1,5 +1,6 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabaseAdmin.ts'
+import { rpcValue } from '../_shared/xpayWebhookProcessor.ts'
 import {
   assertPaymentCanBeMarkedSuccessful,
   assertSessionMatchesPayment,
@@ -35,6 +36,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const gateClient = createServiceClient()
+    const { data: gate, error: gateError } = await gateClient.rpc('checkout_maintenance_active', {})
+    if (gateError || rpcValue(gate, 'checkout_maintenance_active') !== false) {
+      return jsonResponse(req, { error: 'CHECKOUT_MAINTENANCE' }, 503)
+    }
     const xpayMode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
     const body = (await req.json()) as StatusBody
     const paymentId = String(body.paymentId ?? '').trim()
@@ -125,21 +131,13 @@ Deno.serve(async (req) => {
           if (cancelError) throw cancelError
           paymentStatus = 'expired'
         } else if (mapped === 'requires_action' && paymentStatus === 'pending') {
-          const { error: paymentUpdateError } = await supabase
-            .from('payments')
-            .update({
-              status: 'requires_action',
-              provider_status: session.status ?? null,
-              provider_payment_status: session.paymentStatus ?? null,
-            })
-            .eq('id', payment.id)
+          const { error: paymentUpdateError } = await supabase.rpc('sync_xpay_payment_status', {
+            p_payment_id: payment.id,
+            p_status: 'requires_action',
+            p_provider_status: session.status ?? null,
+            p_provider_payment_status: session.paymentStatus ?? null,
+          })
           if (paymentUpdateError) throw paymentUpdateError
-          const { error: orderUpdateError } = await supabase
-            .from('orders')
-            .update({ payment_status: 'requires_action' })
-            .eq('id', order.id)
-          if (orderUpdateError) throw orderUpdateError
-          paymentStatus = 'requires_action'
         } else {
           await supabase
             .from('payments')

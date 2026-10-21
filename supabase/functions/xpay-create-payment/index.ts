@@ -1,5 +1,6 @@
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, storefrontBaseUrl } from '../_shared/supabaseAdmin.ts'
+import { rpcValue } from '../_shared/xpayWebhookProcessor.ts'
 import {
   XPayUpstreamError,
   assertPaymentCanBeMarkedSuccessful,
@@ -43,6 +44,10 @@ Deno.serve(async (req) => {
   let createdPaymentId: string | null = null
 
   try {
+    const { data: gate, error: gateError } = await supabase.rpc('checkout_maintenance_active', {})
+    if (gateError || rpcValue(gate, 'checkout_maintenance_active') !== false) {
+      return jsonResponse(req, { error: 'CHECKOUT_MAINTENANCE' }, 503)
+    }
     const xpayMode = resolveXpayMode(Deno.env.get('XPAY_MODE'))
     const secretKey = requireSecretKeyForMode(xpayMode, Deno.env.get('XPAY_SECRET_KEY'))
     const body = (await req.json()) as CreateBody

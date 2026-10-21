@@ -1,4 +1,4 @@
-import type { OrderStatus } from '@/types'
+import type { OrderStatus, PaymentMethod, PaymentStatus } from '@/types'
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
@@ -8,6 +8,12 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'delivered',
   'cancelled',
 ]
+
+export function parseOrderStatus(value: unknown): OrderStatus | null {
+  return typeof value === 'string' && ORDER_STATUSES.includes(value as OrderStatus)
+    ? value as OrderStatus
+    : null
+}
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'جديد',
@@ -35,12 +41,19 @@ export function isTerminalOrderStatus(status: OrderStatus) {
 }
 
 /** UI-level workflow: next step in the preferred flow, plus cancel when not delivered. */
-export function getAllowedStatusTransitions(current: OrderStatus): OrderStatus[] {
+export function getAllowedStatusTransitions(
+  current: OrderStatus,
+  paymentMethod?: PaymentMethod,
+  paymentStatus?: PaymentStatus,
+): OrderStatus[] {
   if (isTerminalOrderStatus(current)) return []
 
   const allowed: OrderStatus[] = []
   const idx = FLOW.indexOf(current)
-  if (idx >= 0 && idx < FLOW.length - 1) {
+  if (
+    idx >= 0 && idx < FLOW.length - 1 &&
+    (paymentMethod !== 'xpay' || paymentStatus === 'successful')
+  ) {
     allowed.push(FLOW[idx + 1])
   }
   allowed.push('cancelled')

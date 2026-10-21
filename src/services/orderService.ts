@@ -1,6 +1,7 @@
 import { formatOrderReference } from '@/lib/checkoutValidation'
 import { AppError, toAppError } from '@/lib/errors'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
+import { parseOrderStatus } from '@/lib/orderStatus'
 import type { CartItem, CheckoutPayload, Order, OrderItem, OrderStatus } from '@/types'
 
 function mapMoney(value: number | string) {
@@ -27,7 +28,7 @@ function mapOrderItem(row: OrderItem): OrderItem {
 export type GuestOrderConfirmation = {
   id: string
   reference: string
-  status: 'pending'
+  status: OrderStatus
   customerName: string
   subtotal: number
   total: number
@@ -90,7 +91,7 @@ export function readRememberedGuestOrderConfirmation(): GuestOrderConfirmation |
     return {
       id: parsed.id,
       reference: parsed.reference,
-      status: 'pending',
+      status: parseOrderStatus(parsed.status) ?? 'pending',
       customerName: typeof parsed.customerName === 'string' ? parsed.customerName : '',
       subtotal: typeof parsed.subtotal === 'number' ? parsed.subtotal : parsed.total,
       total: parsed.total,
@@ -207,6 +208,11 @@ function mapAdminStatusRpcError(error: unknown): AppError | null {
   }
   if (/ORDER_NOT_FOUND/i.test(message)) {
     return new AppError('not_found', 'الطلب غير موجود.', { cause: error })
+  }
+  if (/XPAY_PAYMENT_REQUIRED/i.test(message)) {
+    return new AppError('validation', 'لا يمكن تجهيز أو شحن طلب XPay قبل تأكيد نجاح الدفع.', {
+      cause: error,
+    })
   }
   if (/INVALID_ORDER_STATUS_TRANSITION/i.test(message)) {
     return new AppError(

@@ -1,7 +1,8 @@
 import { formatOrderReference } from '@/lib/checkoutValidation'
 import { AppError, toAppError } from '@/lib/errors'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
-import type { CartItem, CheckoutPayload } from '@/types'
+import { parseOrderStatus } from '@/lib/orderStatus'
+import type { CartItem, CheckoutPayload, OrderStatus } from '@/types'
 import type { GuestOrderConfirmation } from '@/services/orderService'
 
 export type PaymentMethodChoice = 'cod' | 'xpay'
@@ -29,7 +30,7 @@ export type XPayStatusResult = {
   paymentId: string
   orderId: string
   paymentStatus: PaymentStatusValue
-  orderStatus: string
+  orderStatus: OrderStatus
   confirmation: GuestOrderConfirmation
   verified: boolean
 }
@@ -274,16 +275,18 @@ export async function fetchXPayPaymentStatus(input: {
       throw new AppError('database', 'تعذر التحقق من حالة الدفع من الخادم.')
     }
 
+    const orderStatus = parseOrderStatus(row.orderStatus) ?? 'pending'
+
     return {
       paymentId: row.paymentId,
       orderId: row.orderId,
       paymentStatus: row.paymentStatus,
-      orderStatus: row.orderStatus ?? 'pending',
+      orderStatus,
       verified: Boolean(row.verified),
       confirmation: {
         id: row.confirmation.id,
         reference: formatOrderReference(row.confirmation.id),
-        status: 'pending',
+        status: orderStatus,
         customerName: row.confirmation.customerName,
         subtotal: Number(row.confirmation.subtotal),
         total: Number(row.confirmation.total),

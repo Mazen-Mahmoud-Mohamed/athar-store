@@ -114,7 +114,7 @@ export function AdminOrderDetailsPage() {
     )
   }
 
-  const allowed = getAllowedStatusTransitions(order.status)
+  const allowed = getAllowedStatusTransitions(order.status, order.payment_method, order.payment_status)
   const whatsappUrl = customerWhatsAppUrl(order.phone)
   const terminal = isTerminalOrderStatus(order.status)
 
@@ -210,6 +210,16 @@ export function AdminOrderDetailsPage() {
           <Separator className="my-5" />
 
           <h3 className="text-sm font-medium text-brown">تحديث حالة الطلب</h3>
+          {order.payment_method === 'xpay' && order.payment_status !== 'successful' && !terminal ? (
+            <p className="mt-2 text-sm text-danger">
+              لا يمكن متابعة تجهيز أو شحن هذا الطلب حتى يؤكد XPay نجاح الدفع.
+            </p>
+          ) : null}
+          {order.payment_method === 'xpay' && order.payment_status === 'successful' && order.status === 'cancelled' ? (
+            <p className="mt-2 text-sm text-danger">
+              هذا الطلب ملغي والدفع ناجح. راجعي المبلغ المدفوع؛ الإلغاء لا يعيد الأموال تلقائيًا.
+            </p>
+          ) : null}
           {terminal ? (
             <p className="mt-2 text-sm text-mocha">
               هذا الطلب في حالة نهائية ({ORDER_STATUS_LABELS[order.status]}) ولا يمكن تغييره.
@@ -288,8 +298,11 @@ export function AdminOrderDetailsPage() {
           <DialogHeader>
             <DialogTitle>تأكيد إلغاء الطلب</DialogTitle>
             <DialogDescription>
-              هل أنتِ متأكدة من إلغاء الطلب {order.reference}؟ لا يمكن التراجع عن هذه الخطوة من
-              لوحة الإدارة بسهولة.
+              هل أنتِ متأكدة من إلغاء الطلب {order.reference}؟ لا يمكن التراجع عن الإلغاء من لوحة الإدارة.
+              {order.status === 'shipped'
+                ? ' لن تُعاد الكميات للمخزون تلقائيًا لأن الطلب تم شحنه.'
+                : ' ستُعاد الكميات للمخزون مرة واحدة.'}
+              {order.payment_method === 'xpay' ? ' الإلغاء لا يعيد الأموال تلقائيًا، وأي دفع لاحق يحتاج إلى مراجعة.' : ''}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-wrap justify-end gap-2">

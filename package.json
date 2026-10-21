@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:xpay": "node scripts/_qa-xpay-signature.mjs",
+    "test:orders": "node scripts/test-order-workflow.mjs",
     "seed:demo-catalog": "node scripts/seed-demo-catalog.mjs"
   },
   "dependencies": {
@@ -33,7 +34,9 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "embedded-postgres": "18.4.0-beta.17",
     "oxlint": "^1.81.0",
+    "pg": "8.16.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"

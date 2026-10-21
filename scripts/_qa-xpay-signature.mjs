@@ -8,6 +8,10 @@
  */
 import crypto from 'node:crypto'
 import assert from 'node:assert/strict'
+import {
+  createCheckoutSession as createXPayCheckoutSession,
+  XPayUpstreamError,
+} from '../supabase/functions/_shared/xpay.ts'
 
 const TOLERANCE_SECONDS = 300
 
@@ -735,6 +739,90 @@ assert.throws(() => egpToMinorUnits('-1.00'), /INVALID_AMOUNT/)
     /XPAY_CURRENCY_MISMATCH/,
   )
   assert.equal(invalidSeen.size, 0)
+}
+
+// 16) XPay create-session success and nested upstream error diagnostics
+{
+  const originalFetch = globalThis.fetch
+  const liveSession = {
+    id: 'cs_live_create_1',
+    url: 'https://checkout.xpay.app/c/cs_live_create_1',
+    livemode: true,
+    amountTotal: 12345,
+    currency: 'EGP',
+  }
+  let capturedRequest
+  try {
+    globalThis.fetch = async (url, request) => {
+      capturedRequest = { url, ...request }
+      return new Response(JSON.stringify(liveSession), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const createInput = {
+      secretKey: 'sk_live_placeholder',
+      mode: 'live',
+      idempotencyKey: 'athar_payment_1',
+      afterCompletionUrl: 'https://athar.qd.je/order-success',
+      cancelUrl: 'https://athar.qd.je/order-success?xpay_cancel=1',
+      metadata: { athar_payment_id: 'pay_test_only', athar_mode: 'live' },
+      customerName: 'Test Customer Name',
+      customerPhone: '+201012345678',
+      lineItems: [{ name: 'Example product', unitAmountMinor: 12345, quantity: 1 }],
+    }
+
+    const created = await createXPayCheckoutSession(createInput)
+    assert.equal(created.id, 'cs_live_create_1')
+    assert.equal(created.url, liveSession.url)
+    assert.equal(capturedRequest.url, 'https://api.xpay.app/checkout/sessions')
+    assert.equal(capturedRequest.method, 'POST')
+    assert.equal(capturedRequest.headers.Authorization, 'Bearer sk_live_placeholder')
+    assert.equal(capturedRequest.headers['Content-Type'], 'application/json')
+    assert.equal(capturedRequest.headers['Idempotency-Key'], 'athar_payment_1')
+    const requestBody = JSON.parse(capturedRequest.body)
+    assert.equal(requestBody.lineItems[0].priceData.unitAmount, 12345)
+    assert.deepEqual(requestBody.afterCompletion, {
+      type: 'redirect',
+      redirect: { url: createInput.afterCompletionUrl },
+    })
+
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      error: {
+        type: 'invalid_request_error',
+        code: 'parameter_invalid',
+        message: 'Invalid phone +201012345678 for Test Customer Name test@example.com',
+        param: 'customerDetails.phone',
+      },
+      request_id: 'req_safe_123',
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    let upstreamFailure
+    try {
+      await createXPayCheckoutSession({ ...createInput, idempotencyKey: 'athar_payment_2' })
+    } catch (error) {
+      upstreamFailure = error
+    }
+    assert.ok(upstreamFailure instanceof XPayUpstreamError)
+    assert.equal(upstreamFailure.message, 'XPAY_SESSION_CREATE_FAILED')
+    assert.deepEqual(upstreamFailure.details, {
+      status: 400,
+      type: 'invalid_request_error',
+      code: 'parameter_invalid',
+      param: 'customerDetails.phone',
+      requestId: 'req_safe_123',
+      message: 'Invalid phone [redacted] for [redacted] [redacted-email]',
+    })
+    assert.equal(JSON.stringify(upstreamFailure.details).includes('+201012345678'), false)
+    assert.equal(JSON.stringify(upstreamFailure.details).includes('Test Customer Name'), false)
+    assert.equal(JSON.stringify(upstreamFailure.details).includes('test@example.com'), false)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 }
 
 console.log('xpay signature + mode guards + webhook/stock idempotency: OK')

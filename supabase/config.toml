@@ -422,3 +422,7 @@ verify_jwt = false
 
 [functions.xpay-webhook]
 verify_jwt = false
+
+# Requires the service-role bearer credential inside the handler; never frontend callable.
+[functions.xpay-process-webhook-inbox]
+verify_jwt = false

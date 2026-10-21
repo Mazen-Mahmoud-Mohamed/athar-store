@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { RouteScroll } from '@/components/RouteScroll'
 import { AuthProvider } from '@/features/admin/AuthProvider'
 import { AdminRouteGuard } from '@/features/admin/AdminRouteGuard'
 import { CartProvider } from '@/features/cart/CartProvider'
@@ -50,6 +51,7 @@ const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
 export default function App() {
   return (
     <BrowserRouter basename={routerBasename}>
+      <RouteScroll />
       <AuthProvider>
         <CartProvider>
           <Routes>

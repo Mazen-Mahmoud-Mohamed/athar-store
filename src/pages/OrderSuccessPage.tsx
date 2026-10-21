@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { whatsappOrderFollowUpUrl } from '@/config/contact'
 import { formatPrice } from '@/lib/utils'
+import { ORDER_STATUS_LABELS } from '@/lib/orderStatus'
 import {
   readRememberedGuestOrderConfirmation,
   rememberGuestOrderConfirmation,
@@ -34,6 +35,15 @@ function headlineFor(
     return {
       title: 'جارٍ التحقق من الدفع',
       body: 'نتحقق من حالة الدفع من الخادم. قد يستغرق ذلك لحظات.',
+    }
+  }
+
+  if (confirmation?.status === 'cancelled') {
+    return {
+      title: 'تم إلغاء الطلب',
+      body: confirmation.paymentMethod === 'xpay' && paymentStatus === 'successful'
+        ? 'تم تسجيل الدفع، لكن الطلب ملغي ولن يتم شحنه. الإلغاء لا يعيد المبلغ تلقائيًا؛ تواصلي معنا برقم الطلب لمراجعة الدفع والاسترداد.'
+        : 'هذا الطلب ملغي ولن يتم شحنه. يمكنكِ التواصل معنا برقم الطلب لمتابعة التفاصيل وحالة الدفع.',
     }
   }
 
@@ -247,7 +257,7 @@ export function OrderSuccessPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <dt className="text-mocha">حالة الطلب</dt>
                   <dd className="text-brown">
-                    {paymentStatus === 'successful' ? 'مؤكد' : 'قيد المراجعة'}
+                    {ORDER_STATUS_LABELS[confirmation.status] ?? 'قيد المراجعة'}
                   </dd>
                 </div>
                 {showPaymentRow ? (
@@ -292,7 +302,9 @@ export function OrderSuccessPage() {
           {confirmation ? (
             <div className="mt-8 space-y-3 text-sm leading-7 text-mocha">
               <p className="font-medium text-brown">ماذا بعد؟</p>
-              {confirmation.paymentMethod === 'xpay' ? (
+              {confirmation.status === 'cancelled' ? (
+                <p>لن يتم تجهيز هذا الطلب أو شحنه. تواصلي معنا برقم الطلب لمراجعة التفاصيل وأي مبلغ مدفوع.</p>
+              ) : confirmation.paymentMethod === 'xpay' ? (
                 paymentStatus === 'successful' ? (
                   <p>تم تأكيد الدفع إلكترونيًا. نراجع الطلب ونتواصل لتأكيد موعد التوصيل.</p>
                 ) : (
