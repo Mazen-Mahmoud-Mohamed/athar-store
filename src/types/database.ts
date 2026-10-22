@@ -150,7 +150,7 @@ export type Database = {
           status?: ProductReview['status']
           show_author_name?: boolean
           author_display_name?: string | null
-          moderated_by?:: string | null
+          moderated_by?: string | null
           moderated_at?: string | null
           created_at?: string
           updated_at?: string
@@ -162,7 +162,7 @@ export type Database = {
           status?: ProductReview['status']
           show_author_name?: boolean
           author_display_name?: string | null
-          moderated_by?:: string | null
+          moderated_by?: string | null
           moderated_at?: string | null
           updated_at?: string
         }
