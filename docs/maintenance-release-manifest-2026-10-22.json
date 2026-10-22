@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-22T00:41:53.963Z",
+  "generatedAt": "2026-10-22T00:46:44.468Z",
   "baseHead": "f75fb814e055ee5350d9a42e200000d1b384b809",
   "remote": "https://github.com/Mazen-Mahmoud-Mohamed/athar-store.git",
   "productionModified": true,
-  "deployed": false,
+  "deployed": true,
   "productionBackupCreated": true,
   "productionBackupRestoreTested": true,
-  "readiness": "Backend deployed and verified; authenticated hosted minute worker HTTP 200 confirmed; frontend publication and reopening follow this release commit",
+  "readiness": "DEPLOYED: actual backup recovery, atomic 012-014, Edge functions, cron HTTP 200, frontend Pages and desktop/mobile scroll/cart/checkout checks passed; checkout reopened",
   "tests": {
     "postgres": "17.11",
     "regressionGroups": 62,
@@ -23,7 +23,9 @@
     "isolatedRecoveryVerifier": "PASS: exact CREATE/ALTER SQLSTATE and statement/source line; rollback; 42501 GRANTED BY probe and implicit grantor repair; effective multiple-grantor option union; actual synthetic encrypted restore/RLS; migrations 012-014 rehearsal; EFS cleanup",
     "restoreFollowup": "PASS: exact parameter-grant regression, structural redaction, native restore diagnostics, selected-schema bootstrap conflict repair and PostgreSQL 17.11 actual synthetic restore",
     "releaseCredentialTransport": "PASS: SQL uses current-user-only named pipe; worker-only env input uses current-user-only EFS D: file because CLI rejects env named pipes; temporary encrypted file removed",
-    "workerDedicatedAuth": "PASS: dedicated token accepted; browser/service credentials rejected; missing token fails closed; no financial mutations"
+    "workerDedicatedAuth": "PASS: dedicated token accepted; browser/service credentials rejected; missing token fails closed; no financial mutations",
+    "liveStorefront": "PASS desktop/mobile: home/listing/category/related PDP scrollY=0, Back restoration, local cart-to-checkout; all mutating requests blocked; no orders/payments/refunds created; ancillary Maps POST intentionally blocked",
+    "productionSecurity": "PASS: RLS and strict RPC/table grants; authenticated without identity sees zero orders and is_admin=false; inventory nonnegative"
   },
   "functionDeployments": [
     "xpay-webhook",
@@ -325,8 +327,8 @@
     },
     {
       "path": "scripts/verify-live-storefront.mjs",
-      "bytes": 3757,
-      "sha256": "454e95d2e9a36770dccc42d5b9be758c75318e8430962407b75b77e0424fd5c8"
+      "bytes": 4185,
+      "sha256": "705803ced380e655338a1f6e1a315857a136db07bc8c4539d8552740fef46c03"
     }
   ],
   "deltaThisPreparation": [
@@ -532,8 +534,8 @@
     },
     {
       "path": "scripts/verify-live-storefront.mjs",
-      "bytes": 3757,
-      "sha256": "454e95d2e9a36770dccc42d5b9be758c75318e8430962407b75b77e0424fd5c8"
+      "bytes": 4185,
+      "sha256": "705803ced380e655338a1f6e1a315857a136db07bc8c4539d8552740fef46c03"
     }
   ],
   "preservation": {
@@ -548,10 +550,7 @@
     ],
     "migration012And013AndRouteScroll": "Verified unchanged against prior hashes"
   },
-  "pending": [
-    "Publish this complete release to main and verify GitHub Pages and live browser flows",
-    "Resume queued financial processing with checkout closed, recheck preservation/security and empty backlog, reopen checkout"
-  ],
+  "pending": [],
   "productionBackupDirectory": "D:/work/athar-backups/20261021-222206-96ea5a10",
   "productionDeployment": {
     "migrationsApplied": [
@@ -560,18 +559,39 @@
       "20261021000014"
     ],
     "functions": {
-      "xpay-webhook": 14,
-      "xpay-create-payment": 10,
-      "xpay-payment-status": 9,
-      "xpay-process-webhook-inbox": 2
+      "xpay-webhook": 15,
+      "xpay-create-payment": 11,
+      "xpay-payment-status": 10,
+      "xpay-process-webhook-inbox": 3
     },
     "scheduler": {
       "jobId": 1,
       "schedule": "* * * * *",
       "http200Verified": true
     },
-    "checkoutMaintenance": true,
+    "checkoutMaintenance": false,
     "pendingWebhookEvents": 0,
-    "frontend": "Publication follows this commit; final outcome recorded in task report"
-  }
+    "frontend": {
+      "verifiedApplicationCommit": "5f28506f8f29cf0090da84197e28d75e1eb1ed7c",
+      "pagesRunId": 39701293880,
+      "pagesResult": "success",
+      "liveAsset": "/assets/index-CouM9P8Y.js",
+      "finalSync": "QA-only browser import/maps assertion and this completed manifest; application source unchanged"
+    },
+    "financialMaintenance": false,
+    "preserved": {
+      "products": 19,
+      "categories": 4,
+      "admins": 2,
+      "orders": 42,
+      "orderItems": 67,
+      "payments": 32,
+      "inventoryStockTotal": 117,
+      "storageObjects": 23
+    }
+  },
+  "limitations": [
+    "No real payment/refund or synthetic production webhook was initiated; financial/concurrency mutation cases remain covered by local regression evidence",
+    "Standalone recovery does not reconstruct external Storage file bytes, Auth/Edge secrets or Supabase control-plane infrastructure; existing project and objects were preserved"
+  ]
 }

@@ -1,6 +1,6 @@
 // Read-only production browser checks. Never submits checkout or permits POSTs.
 import assert from 'node:assert/strict'
-import {chromium} from 'C:/Users/mmahm/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs'
+import {chromium} from 'file:///C:/Users/mmahm/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs'
 const origin='https://athar.qd.je'
 const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true})
 try {
@@ -8,9 +8,10 @@ try {
     const context=await browser.newContext({viewport,isMobile:device==='mobile',hasTouch:device==='mobile',locale:'ar-EG'})
     const page=await context.newPage()
     let blockedMutations=0,pageErrors=0
+    const blockedPaths=[]
     page.on('pageerror',()=>pageErrors++)
     await page.route('**/*',route=>{
-      if(!['GET','HEAD','OPTIONS'].includes(route.request().method())){blockedMutations++;return route.abort()}
+      if(!['GET','HEAD','OPTIONS'].includes(route.request().method())){blockedMutations++;const url=new URL(route.request().url());blockedPaths.push(url.hostname+url.pathname);return route.abort()}
       return route.continue()
     })
     const productLink=()=>page.locator('a[href^="/products/"]').first()
@@ -51,8 +52,10 @@ try {
     await page.waitForFunction(()=>location.pathname==='/checkout',{timeout:20000})
     assert.ok(await page.locator('form').count(),`${device} checkout form missing`)
     assert.equal(pageErrors,0,`${device} browser runtime errors`)
-    assert.equal(blockedMutations,0,`${device} unexpected mutation attempted`)
-    console.log(JSON.stringify({device,homepageToProduct:'PASS',listingToProduct:'PASS',categoryToProduct:'PASS',relatedToProduct:'PASS',productScrollY:0,backRestored,cartCheckout:'PASS',paymentsCreated:0,mutatingRequests:0}))
+    // The embedded Google Maps viewport lookup is a read RPC sent as POST.
+    // Keep it blocked too; it is outside checkout/payment validation.
+    assert.ok(blockedPaths.every(path=>path==='maps.googleapis.com/$rpc/google.internal.maps.mapsjs.v1.MapsJsInternalService/GetViewportInfo'),`${device} unexpected application mutation attempted`)
+    console.log(JSON.stringify({device,homepageToProduct:'PASS',listingToProduct:'PASS',categoryToProduct:'PASS',relatedToProduct:'PASS',productScrollY:0,backRestored,cartCheckout:'PASS',paymentsCreated:0,allowedMutatingRequests:0,blockedMapLookups:blockedMutations}))
     await context.close()
   }
 } finally {await browser.close()}
