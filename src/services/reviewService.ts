@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/lib/supabase'
+import { optimizeImageForUpload } from '@/lib/imageOptimization'
 
 export type ProductReview = {
   id: string
@@ -38,6 +39,8 @@ export async function submitVerifiedReview(
   showAuthorName = false,
 ): Promise<{ imageWarning?: string }> {
   const client = requireSupabase()
+  // Optimize before creating the review, so invalid files cannot leave empty reviews.
+  const optimizedPhoto = photo ? await optimizeImageForUpload(photo, 'review') : null
   const { data, error } = await client.rpc('submit_product_review', {
     p_order_item_id: orderItemId,
     p_rating: rating,
@@ -46,17 +49,17 @@ export async function submitVerifiedReview(
   })
   if (error) throw error
   const review = data as ProductReview
-  if (!photo) return {}
+  if (!optimizedPhoto) return {}
   const validTypes: Record<string, string> = {
     'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
   }
-  const extension = validTypes[photo.type]
-  if (!extension || photo.size > 5 * 1024 * 1024) {
+  const extension = validTypes[optimizedPhoto.type]
+  if (!extension || optimizedPhoto.size > 5 * 1024 * 1024) {
     return { imageWarning: 'اتسجل التقييم، لكن الصورة لازم تكون JPG أو PNG أو WebP وبحجم أقل من 5 ميجابايت.' }
   }
   const path = review.id + '/photo.' + extension
-  const upload = await client.storage.from(BUCKET).upload(path, photo, {
-    upsert: false, contentType: photo.type,
+  const upload = await client.storage.from(BUCKET).upload(path, optimizedPhoto, {
+    upsert: false, contentType: optimizedPhoto.type,
   })
   if (upload.error) return { imageWarning: 'اتسجل التقييم، لكن رفع الصورة فشل.' }
   const attach = await client.rpc('attach_product_review_photo', {

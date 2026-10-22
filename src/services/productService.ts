@@ -12,7 +12,6 @@ import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
 import {
   removeStorageObjectByPublicUrl,
   uploadCatalogImage,
-  validateImageFile,
 } from '@/services/storageService'
 import type { Product, ProductInsert, ProductUpdate } from '@/types'
 
@@ -393,7 +392,6 @@ export async function adminReplaceProductImage(
   currentUrl: string | null,
 ): Promise<Product> {
   requireConfigured()
-  validateImageFile(file)
 
   const { publicUrl } = await uploadCatalogImage(file, 'products', productId)
 
