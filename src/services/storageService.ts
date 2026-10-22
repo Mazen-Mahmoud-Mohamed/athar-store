@@ -1,5 +1,6 @@
 import { AppError, toAppError } from '@/lib/errors'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
+import { optimizeImageForUpload } from '@/lib/imageOptimization'
 
 const BUCKET = 'product-images'
 const MAX_BYTES = 5 * 1024 * 1024
@@ -50,16 +51,18 @@ export async function uploadCatalogImage(
     throw new AppError('not_configured', 'Supabase غير مهيأ.')
   }
 
-  validateImageFile(file)
+  // Optimize prior to the 5 MB storage limit; large phone photos are supported.
+  const optimized = await optimizeImageForUpload(file, 'catalog')
+  validateImageFile(optimized)
 
   try {
     const supabase = requireSupabase()
-    const path = `${folder}/${entityId}/${Date.now()}.${extensionFor(file)}`
+    const path = `${folder}/${entityId}/${Date.now()}.${extensionFor(optimized)}`
 
-    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
+    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, optimized, {
       cacheControl: '3600',
       upsert: false,
-      contentType: file.type,
+      contentType: optimized.type,
     })
 
     if (uploadError) throw uploadError
