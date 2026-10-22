@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Search, ShoppingBag, X } from 'lucide-react'
+import { Menu, Search, ShoppingBag, User, X } from 'lucide-react'
 import atharLogoTransparent from '@/assets/athar-logo-transparent.png'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ContactLinks } from '@/components/ContactLinks'
@@ -15,6 +15,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useCart } from '@/features/cart/cart-context'
+import { useAuth } from '@/features/admin/AuthProvider'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -72,8 +73,10 @@ function NavItem({
 
 export function Header() {
   const { itemCount } = useCart()
+  const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const isLoggedIn = Boolean(user?.email_confirmed_at)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -150,6 +153,12 @@ export function Header() {
                 aria-label="بحث في المنتجات"
               />
             </form>
+            {/* Account icon */}
+            <Button asChild variant="ghost" size="icon" aria-label={isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}>
+              <Link to={isLoggedIn ? '/account' : '/login'}>
+                <User aria-hidden="true" className="size-5" />
+              </Link>
+            </Button>
             <Button asChild variant="ghost" size="icon" className="relative" aria-label={cartLabel}>
               <Link to="/cart">
                 <ShoppingBag aria-hidden="true" />
@@ -201,6 +210,14 @@ export function Header() {
                     onNavigate={() => setMobileOpen(false)}
                   />
                 ))}
+                {/* Account link in mobile nav */}
+                <Link
+                  to={isLoggedIn ? '/account' : '/login'}
+                  onClick={() => setMobileOpen(false)}
+                  className="relative text-sm font-medium text-mocha transition-colors hover:text-brown"
+                >
+                  {isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}
+                </Link>
               </nav>
               <form onSubmit={submitSearch} className="relative mt-8" role="search">
                 <Search
@@ -228,7 +245,7 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
-          {/* Last in RTL flex = far left: search + cart */}
+          {/* Last in RTL flex = far left: search + account + cart */}
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -239,6 +256,11 @@ export function Header() {
               onClick={() => setSearchOpen((v) => !v)}
             >
               {searchOpen ? <X aria-hidden="true" /> : <Search aria-hidden="true" />}
+            </Button>
+            <Button asChild variant="ghost" size="icon" aria-label={isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}>
+              <Link to={isLoggedIn ? '/account' : '/login'}>
+                <User aria-hidden="true" className="size-5" />
+              </Link>
             </Button>
             <Button asChild variant="ghost" size="icon" className="relative" aria-label={cartLabel}>
               <Link to="/cart">

@@ -332,7 +332,7 @@ export async function createOrder(
       quantity: item.quantity,
     }))
 
-    const { data, error } = await supabase.rpc('create_guest_order', {
+    const { data, error } = await supabase.rpc('create_customer_order', {
       p_customer_name: payload.customerName,
       p_phone: payload.phone,
       p_address: payload.address,

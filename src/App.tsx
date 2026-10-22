@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { RouteScroll } from '@/components/RouteScroll'
 import { AuthProvider } from '@/features/admin/AuthProvider'
 import { AdminRouteGuard } from '@/features/admin/AdminRouteGuard'
+import { CustomerRouteGuard } from '@/features/account/CustomerRouteGuard'
 import { CartProvider } from '@/features/cart/CartProvider'
 import { StoreLayout } from '@/layouts/StoreLayout'
 import { AdminLayout } from '@/layouts/AdminLayout'
@@ -18,6 +19,10 @@ import { ReturnPolicyPage } from '@/pages/ReturnPolicyPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
+import { CustomerAuthPage } from '@/pages/CustomerAuthPage'
+import { AccountOrdersPage } from '@/pages/account/AccountOrdersPage'
+import { AccountOrderDetailPage } from '@/pages/account/AccountOrderDetailPage'
+import { AccountProfilePage } from '@/pages/account/AccountProfilePage'
 
 const AdminDashboardPage = lazy(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
@@ -55,16 +60,31 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           <Routes>
+            {/* Customer auth routes (public) */}
+            <Route path="login" element={<CustomerAuthPage mode="login" />} />
+            <Route path="register" element={<CustomerAuthPage mode="register" />} />
+            <Route path="forgot-password" element={<CustomerAuthPage mode="forgot" />} />
+            <Route path="reset-password" element={<CustomerAuthPage mode="reset" />} />
+            <Route path="auth/callback" element={<CustomerAuthPage mode="callback" />} />
+
             <Route element={<StoreLayout />}>
               <Route index element={<HomePage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/:id" element={<ProductDetailsPage />} />
               <Route path="category/:slug" element={<CategoryPage />} />
               <Route path="cart" element={<CartPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-success" element={<OrderSuccessPage />} />
               <Route path="return-policy" element={<ReturnPolicyPage />} />
               <Route path="terms" element={<TermsPage />} />
+
+              {/* Protected customer routes */}
+              <Route element={<CustomerRouteGuard />}>
+                <Route path="checkout" element={<CheckoutPage />} />
+                <Route path="account" element={<AccountOrdersPage />} />
+                <Route path="account/profile" element={<AccountProfilePage />} />
+                <Route path="account/orders/:id" element={<AccountOrderDetailPage />} />
+              </Route>
+
               {/* Unknown storefront paths — SPA catch-all (GitHub Pages 404.html still boots the app). */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

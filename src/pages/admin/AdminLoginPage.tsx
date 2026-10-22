@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/admin/AuthProvider'
 import { getErrorMessage } from '@/lib/errors'
 import { toast } from 'sonner'
+import { isCurrentUserAdmin } from '@/services/authService'
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
@@ -49,6 +50,7 @@ export function AdminLoginPage() {
     setSubmitting(true)
     try {
       await signIn(email, password)
+      if (!(await isCurrentUserAdmin())) throw new Error('هذا الحساب لا يملك صلاحية الإدارة.')
       toast.success('تم تسجيل الدخول')
       navigate(redirectTo, { replace: true })
     } catch (error) {
