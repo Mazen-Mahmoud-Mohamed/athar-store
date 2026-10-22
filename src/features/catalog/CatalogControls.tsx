@@ -290,10 +290,17 @@ export function CatalogControls({
 
             {filterOpen && (
               <div
+                className="fixed inset-0 z-[60] bg-espresso/35 backdrop-blur-[1px] sm:hidden"
+                aria-hidden="true"
+                onClick={() => setFilterOpen(false)}
+              />
+            )}
+            {filterOpen && (
+              <div
                 id="products-filter-panel"
                 role="region"
                 aria-label="خيارات التصفية"
-                className="absolute left-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-taupe/40 bg-card p-4 shadow-[0_18px_50px_rgba(47,33,24,0.17)] sm:p-5"
+                className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[70] max-h-[min(80dvh,36rem)] overflow-y-auto overscroll-contain rounded-2xl border border-taupe/40 bg-card p-4 shadow-[0_18px_50px_rgba(47,33,24,0.17)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:z-40 sm:mt-2 sm:w-[22rem] sm:max-h-[min(75vh,36rem)] sm:p-5"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
