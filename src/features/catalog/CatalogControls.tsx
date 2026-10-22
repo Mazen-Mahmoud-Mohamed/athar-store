@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Filter, SlidersHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -173,6 +173,38 @@ export function CatalogControls({
   className,
 }: CatalogControlsProps) {
   const [open, setOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [draftMin, setDraftMin] = useState(values.minPrice)
+  const [draftMax, setDraftMax] = useState(values.maxPrice)
+  const filterAreaRef = useRef<HTMLDivElement>(null)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!compact || !filterOpen) return
+    function handlePointerDown(event: PointerEvent) {
+      if (filterAreaRef.current && !filterAreaRef.current.contains(event.target as Node)) {
+        setFilterOpen(false)
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setFilterOpen(false)
+        filterButtonRef.current?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [compact, filterOpen])
+
+  const priceInvalid =
+    draftMin.trim() !== '' &&
+    draftMax.trim() !== '' &&
+    Number(draftMin) > Number(draftMax)
+
   const hasActiveFilters =
     Boolean(values.categorySlug) ||
     values.onlyNew ||
@@ -230,21 +262,131 @@ export function CatalogControls({
             </select>
           </label>
 
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button type="button" variant="outline" size="sm" className="gap-2">
-                <SlidersHorizontal className="size-4" aria-hidden="true" />
-                <span>كل الفلاتر</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl bg-cream">
-              <SheetHeader><SheetTitle>تصفية وترتيب</SheetTitle></SheetHeader>
-              <div className="mt-5">
-                <FilterFields categories={categories} values={values} onChange={onChange} hideCategory={hideCategory} />
-                <Button type="button" className="mt-5 w-full" onClick={() => setOpen(false)}>عرض {resultCountLoading ? 'النتائج' : `${resultCount} منتج`}</Button>
+          {/* A small anchored panel on desktop; no full-screen dialog for price filters. */}
+          <div ref={filterAreaRef} className="relative shrink-0">
+            <Button
+              ref={filterButtonRef}
+              type="button"
+              variant={values.minPrice || values.maxPrice ? 'soft' : 'outline'}
+              size="sm"
+              className="gap-2 rounded-lg"
+              aria-expanded={filterOpen}
+              aria-controls="products-filter-panel"
+              onClick={() => {
+                if (!filterOpen) {
+                  setDraftMin(values.minPrice)
+                  setDraftMax(values.maxPrice)
+                }
+                setFilterOpen(current => !current)
+              }}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">تصفية السعر</span>
+              <span className="sm:hidden">تصفية</span>
+              {(values.minPrice || values.maxPrice) && (
+                <span className="size-1.5 rounded-full bg-gold-deep" aria-hidden="true" />
+              )}
+            </Button>
+
+            {filterOpen && (
+              <div
+                id="products-filter-panel"
+                role="region"
+                aria-label="خيارات التصفية"
+                className="absolute left-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-taupe/40 bg-card p-4 shadow-[0_18px_50px_rgba(47,33,24,0.17)] sm:p-5"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-display text-base font-semibold text-brown">تصفية المنتجات</p>
+                    <p className="mt-1 text-xs text-mocha">حددي السعر المناسب ليكي</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFilterOpen(false)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-mocha hover:bg-mist hover:text-brown"
+                    aria-label="إغلاق التصفية"
+                  >
+                    <X className="size-4" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={event => {
+                    event.preventDefault()
+                    if (priceInvalid) return
+                    onChange({ ...values, minPrice: draftMin, maxPrice: draftMax })
+                    setFilterOpen(false)
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium text-brown">نطاق السعر (ج.م)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="mb-1.5 block text-xs text-mocha" htmlFor="catalog-price-min">من</Label>
+                        <Input id="catalog-price-min" type="number" min={0} step="any" inputMode="decimal"
+                          value={draftMin} onChange={event => setDraftMin(event.target.value)}
+                          placeholder="أقل سعر" />
+                      </div>
+                      <div>
+                        <Label className="mb-1.5 block text-xs text-mocha" htmlFor="catalog-price-max">إلى</Label>
+                        <Input id="catalog-price-max" type="number" min={0} step="any" inputMode="decimal"
+                          value={draftMax} onChange={event => setDraftMax(event.target.value)}
+                          placeholder="أعلى سعر" />
+                      </div>
+                    </div>
+                    {priceInvalid && (
+                      <p className="mt-2 text-xs text-danger" role="alert">أقصى سعر لازم يكون أكبر من أو يساوي أقل سعر.</p>
+                    )}
+                  </div>
+
+                  {/* Desktop already shows sorting and quick filters in the toolbar. */}
+                  <div className="space-y-2 md:hidden">
+                    <Label className="text-xs text-mocha">ترتيب المنتجات</Label>
+                    <select
+                      value={values.sort}
+                      onChange={event => onChange({ ...values, sort: event.target.value as CatalogSort })}
+                      className="h-10 w-full rounded-md border border-taupe/45 bg-card px-3 text-sm text-brown"
+                      aria-label="ترتيب المنتجات"
+                    >
+                      {SORT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 sm:hidden">
+                    <Label className="text-xs text-mocha">تصفية سريعة</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        ['onlyNew', 'جديد'],
+                        ['onlyFeatured', 'مميز'],
+                        ['onlySale', 'عروض'],
+                      ] as const).map(([key, label]) => (
+                        <Button key={key} type="button" size="sm"
+                          variant={values[key] ? 'default' : 'outline'}
+                          aria-pressed={values[key]} className="rounded-full"
+                          onClick={() => onChange({ ...values, [key]: !values[key] })}>
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 border-t border-taupe/25 pt-4">
+                    <Button type="submit" className="flex-1" disabled={priceInvalid}>
+                      عرض {resultCountLoading ? 'النتائج' : `${resultCount} منتج`}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => {
+                      setDraftMin('')
+                      setDraftMax('')
+                      onChange({ ...values, minPrice: '', maxPrice: '' })
+                    }}>
+                      مسح السعر
+                    </Button>
+                  </div>
+                </form>
               </div>
-            </SheetContent>
-          </Sheet>
+            )}
+          </div>
           {hasActiveFilters && (
             <Button type="button" variant="ghost" size="sm" className="text-mocha" onClick={onClear}>
               <X className="size-3.5" aria-hidden="true" />
