@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-21T23:38:06.284Z",
+  "generatedAt": "2026-10-22T00:29:19.464Z",
   "baseHead": "f75fb814e055ee5350d9a42e200000d1b384b809",
   "remote": "https://github.com/Mazen-Mahmoud-Mohamed/athar-store.git",
-  "productionModified": false,
+  "productionModified": true,
   "deployed": false,
   "productionBackupCreated": true,
-  "productionBackupRestoreTested": false,
-  "readiness": "Statement-traced single-prompt repair session tested on PostgreSQL 17.11; actual encrypted archive awaits local unlock",
+  "productionBackupRestoreTested": true,
+  "readiness": "Production release executing: recovery passed; scheduler extensions and private Vault reference provisioned; financial/schema cutover pending",
   "tests": {
     "postgres": "17.11",
     "regressionGroups": 62,
@@ -16,11 +16,13 @@
     "allEdgeWithTransportStub": "PASS with noImplicitAny=false for existing SDK-any item callbacks",
     "lint": "PASS; 10 existing warnings",
     "encryptedSyntheticRestore": "PASS; real pg_restore, count/stock/migration comparison; wrong-key and tamper rejection",
-    "productionRestore": "BLOCKED: latest prior attempt failed in compatibility parser with ERR_ASSERTION before SQL; corrected traced workflow not yet run against actual archive",
+    "productionRestore": "PASS: actual encrypted production backup restored, roles/parameter ACLs/RLS/counts verified, migrations 012-014 rehearsed, encrypted temporary data removed",
     "hostedScheduler": "NOT RUN",
     "backupFollowup": "PASS: complete native archive decoding and actual synthetic restore on PostgreSQL 17.11",
     "backupFailureFix": "PASS: native error/exit redaction and launch handling, strict production TLS without password, native synthetic dump/roles/decode/actual restore; no full order suite rerun",
-    "isolatedRecoveryVerifier": "PASS: exact CREATE/ALTER SQLSTATE and statement/source line; rollback; 42501 GRANTED BY probe and implicit grantor repair; effective multiple-grantor option union; actual synthetic encrypted restore/RLS; migrations 012-014 rehearsal; EFS cleanup"
+    "isolatedRecoveryVerifier": "PASS: exact CREATE/ALTER SQLSTATE and statement/source line; rollback; 42501 GRANTED BY probe and implicit grantor repair; effective multiple-grantor option union; actual synthetic encrypted restore/RLS; migrations 012-014 rehearsal; EFS cleanup",
+    "restoreFollowup": "PASS: exact parameter-grant regression, structural redaction, native restore diagnostics, selected-schema bootstrap conflict repair and PostgreSQL 17.11 actual synthetic restore",
+    "releaseCredentialTransport": "PASS: current-user-only named pipe; no secret files, process arguments or output"
   },
   "functionDeployments": [
     "xpay-webhook",
@@ -237,18 +239,18 @@
     },
     {
       "path": "scripts/verify-production-backup.ps1",
-      "bytes": 5526,
-      "sha256": "d901806d1eed0f063d2db26770d081cf52d2ef214f992556e2eef05d15add836"
+      "bytes": 6770,
+      "sha256": "9b3a8a46e8a070e1961b472063f9d18f7fc63fb7f0480c2f70a4bbe964f36b83"
     },
     {
       "path": "scripts/verify-production-backup.mjs",
-      "bytes": 11405,
-      "sha256": "31dce4b690338bb336626d5e1fffbfcc43bd4379037456b5a37b7d7f3f8c2d82"
+      "bytes": 14633,
+      "sha256": "bc56a394acc736762eeaafac3fea4693b1f0d14bf5306bb5455839c7b6753758"
     },
     {
       "path": "scripts/test-production-restore.mjs",
-      "bytes": 8667,
-      "sha256": "7ff736e99f438f34362e00debf12fb2e5e17ae4613ad30556bf9bca0ffbc3e0a"
+      "bytes": 10973,
+      "sha256": "037ce5e05173f41455f12b1d5baac946128c5119c4d612aecfae005ebe6d316b"
     },
     {
       "path": "scripts/restore-role-compatibility.mjs",
@@ -267,8 +269,53 @@
     },
     {
       "path": "scripts/trace-role-restore.mjs",
-      "bytes": 8365,
-      "sha256": "e2e6097ebf22cbd1b0a692896d7492a41ed666657916eacddc8113ba1ee9ca0b"
+      "bytes": 15088,
+      "sha256": "628742988d3fb3a9bc2b89e212421a37aab67bae92287dfd01a8938b342a11c4"
+    },
+    {
+      "path": "scripts/inspect-role-structure.mjs",
+      "bytes": 2725,
+      "sha256": "9c606b27e69d312ccdad80121f611d871e9faf52fe25f0d5b214eecef7503731"
+    },
+    {
+      "path": "scripts/restore-diagnostics.mjs",
+      "bytes": 2996,
+      "sha256": "74860a157c7e011cc386ebc0e551f20ab3ffe8c960d749a65471411e9f8e143b"
+    },
+    {
+      "path": "scripts/role-structure.mjs",
+      "bytes": 1336,
+      "sha256": "da3e9a1ff8cf21a3c9a824c45da5e943ae87693d471273712c8c88b059ed882b"
+    },
+    {
+      "path": "scripts/test-parameter-grants.mjs",
+      "bytes": 2022,
+      "sha256": "586e820845279931f61e26ae6ea28c011ad2dcbea2cc5365afd0798a828a7423"
+    },
+    {
+      "path": "scripts/test-restore-diagnostics.mjs",
+      "bytes": 1924,
+      "sha256": "0067f8f3c4babfa74857a2ec17c81c54bd0f22f66536f4616a1a53c5549e0e03"
+    },
+    {
+      "path": "scripts/test-role-membership-grammar.mjs",
+      "bytes": 1818,
+      "sha256": "50d7da179c65c0cd5a87948bbd374f200d2e62f8172e0780c3e8b5d08a2a2eab"
+    },
+    {
+      "path": "scripts/test-role-structure.mjs",
+      "bytes": 1035,
+      "sha256": "7c22775365ad50fbeed9c13ccb85cc36ed076f583e451d6b8b129790347b8938"
+    },
+    {
+      "path": "scripts/production-release.ps1",
+      "bytes": 7668,
+      "sha256": "b1614343b7df151847d238d7cd4b6dc664e2c240f72cd72beee9b4ca5bb09039"
+    },
+    {
+      "path": "docs/restore-database-compatibility-2026-10-22.md",
+      "bytes": 1958,
+      "sha256": "03f3827ea3673a36892fec9260460cc1a52d9a7bf920b8af10375c9c43ebe545"
     }
   ],
   "deltaThisPreparation": [
@@ -389,18 +436,18 @@
     },
     {
       "path": "scripts/verify-production-backup.ps1",
-      "bytes": 5526,
-      "sha256": "d901806d1eed0f063d2db26770d081cf52d2ef214f992556e2eef05d15add836"
+      "bytes": 6770,
+      "sha256": "9b3a8a46e8a070e1961b472063f9d18f7fc63fb7f0480c2f70a4bbe964f36b83"
     },
     {
       "path": "scripts/verify-production-backup.mjs",
-      "bytes": 11405,
-      "sha256": "31dce4b690338bb336626d5e1fffbfcc43bd4379037456b5a37b7d7f3f8c2d82"
+      "bytes": 14633,
+      "sha256": "bc56a394acc736762eeaafac3fea4693b1f0d14bf5306bb5455839c7b6753758"
     },
     {
       "path": "scripts/test-production-restore.mjs",
-      "bytes": 8667,
-      "sha256": "7ff736e99f438f34362e00debf12fb2e5e17ae4613ad30556bf9bca0ffbc3e0a"
+      "bytes": 10973,
+      "sha256": "037ce5e05173f41455f12b1d5baac946128c5119c4d612aecfae005ebe6d316b"
     },
     {
       "path": "scripts/restore-role-compatibility.mjs",
@@ -419,8 +466,53 @@
     },
     {
       "path": "scripts/trace-role-restore.mjs",
-      "bytes": 8365,
-      "sha256": "e2e6097ebf22cbd1b0a692896d7492a41ed666657916eacddc8113ba1ee9ca0b"
+      "bytes": 15088,
+      "sha256": "628742988d3fb3a9bc2b89e212421a37aab67bae92287dfd01a8938b342a11c4"
+    },
+    {
+      "path": "scripts/inspect-role-structure.mjs",
+      "bytes": 2725,
+      "sha256": "9c606b27e69d312ccdad80121f611d871e9faf52fe25f0d5b214eecef7503731"
+    },
+    {
+      "path": "scripts/restore-diagnostics.mjs",
+      "bytes": 2996,
+      "sha256": "74860a157c7e011cc386ebc0e551f20ab3ffe8c960d749a65471411e9f8e143b"
+    },
+    {
+      "path": "scripts/role-structure.mjs",
+      "bytes": 1336,
+      "sha256": "da3e9a1ff8cf21a3c9a824c45da5e943ae87693d471273712c8c88b059ed882b"
+    },
+    {
+      "path": "scripts/test-parameter-grants.mjs",
+      "bytes": 2022,
+      "sha256": "586e820845279931f61e26ae6ea28c011ad2dcbea2cc5365afd0798a828a7423"
+    },
+    {
+      "path": "scripts/test-restore-diagnostics.mjs",
+      "bytes": 1924,
+      "sha256": "0067f8f3c4babfa74857a2ec17c81c54bd0f22f66536f4616a1a53c5549e0e03"
+    },
+    {
+      "path": "scripts/test-role-membership-grammar.mjs",
+      "bytes": 1818,
+      "sha256": "50d7da179c65c0cd5a87948bbd374f200d2e62f8172e0780c3e8b5d08a2a2eab"
+    },
+    {
+      "path": "scripts/test-role-structure.mjs",
+      "bytes": 1035,
+      "sha256": "7c22775365ad50fbeed9c13ccb85cc36ed076f583e451d6b8b129790347b8938"
+    },
+    {
+      "path": "scripts/production-release.ps1",
+      "bytes": 7668,
+      "sha256": "b1614343b7df151847d238d7cd4b6dc664e2c240f72cd72beee9b4ca5bb09039"
+    },
+    {
+      "path": "docs/restore-database-compatibility-2026-10-22.md",
+      "bytes": 1958,
+      "sha256": "03f3827ea3673a36892fec9260460cc1a52d9a7bf920b8af10375c9c43ebe545"
     }
   ],
   "preservation": {
@@ -436,12 +528,10 @@
     "migration012And013AndRouteScroll": "Verified unchanged against prior hashes"
   },
   "pending": [
-    "Owner runs verify-production-backup.ps1 -RepairSession with existing passphrase once; connected GitHub app write access already verified",
-    "Production encrypted backup authenticated and actual isolated recovery verified",
-    "Provider enabled non-2xx retry/retention and cutover-window replay verified",
-    "Approved deploy of four fail-closed Edge bundles followed by atomic migration transaction",
-    "Hosted scheduler prerequisites and Vault credential provisioned securely; job verified",
-    "Drain backlog with checkout closed, frontend checks and invariants, then reopen"
+    "Deploy durable webhook/create/status/worker bundles; provider endpoint stays enabled; documented non-2xx retry and 90-day replay cover cutover",
+    "Apply validated atomic 012-014 with maintenance active at commit",
+    "Install hosted minute schedule and verify authenticated HTTP runs",
+    "Publish frontend, drain backlog with checkout closed, verify preserved counts/security, then reopen"
   ],
   "productionBackupDirectory": "D:/work/athar-backups/20261021-222206-96ea5a10"
 }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import net from 'node:net'
 import { spawn, execFileSync } from 'node:child_process'
-import { readFile, writeFile, lstat, rm } from 'node:fs/promises'
+import { readFile, writeFile, lstat, rm, readdir } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { Readable, Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -13,6 +13,7 @@ import { decryptedBackup, verifyEncryptedBackup, encryptBackup } from './encrypt
 import { waitForBackupChild, classifyBackupFailure } from './backup-process.mjs'
 import { prepareReleaseSql } from './order-release-sql.mjs'
 import { restoreRolesTraced, verifyTracedMemberships } from './trace-role-restore.mjs'
+import { classifyRestoreFailure } from './restore-diagnostics.mjs'
 
 const root=path.resolve(process.env.ATHAR_RESTORE_DIRECTORY ?? '')
 const source=path.resolve(process.env.ATHAR_BACKUP_DIRECTORY ?? '')
@@ -49,9 +50,13 @@ async function native(tool,args,input) {
   const status=await done
   if(status.exitCode!==0 || streams.some(result=>result.status==='rejected')) {
     const raw=Buffer.concat(errors)
-    if(raw.length) await encryptBackup(Readable.from([raw]),path.join(source,`restore-${Date.now()}.diagnostics.enc`),passphrase)
+    const diagnosticFile=raw.length?`restore-${Date.now()}.diagnostics.enc`:null
+    if(diagnosticFile) await encryptBackup(Readable.from([raw]),path.join(source,diagnosticFile),passphrase)
     const failure=new Error('Native isolated restore failed')
-    failure.safe={tool,...status,...classifyBackupFailure(raw.toString('utf8'))}
+    const pipelineCode=streams.find(result=>result.status==='rejected')?.reason?.code
+    failure.safe={tool,...status,diagnosticFile,
+      pipelineCode:['EPIPE','ERR_STREAM_PREMATURE_CLOSE','ERR_STREAM_DESTROYED'].includes(pipelineCode)?pipelineCode:null,
+      ...(tool==='pg_restore.exe'?classifyRestoreFailure(raw.toString('utf8')):classifyBackupFailure(raw.toString('utf8')))}
     throw failure
   }
 }
@@ -78,6 +83,26 @@ try {
     assert.equal(await verifyEncryptedBackup(file,passphrase),item.plaintextBytes)
   }
   report.integrity='PASS'
+  // Use the passphrase already supplied by the open parent session to inspect
+  // the previous native failure before repeating any failed database restore.
+  let previous
+  try {previous=JSON.parse(await readFile(path.join(source,'restore-verification.json'),'utf8'))}
+  catch(error){if(error.code!=='ENOENT')throw error}
+  if(previous&&['restore_database','diagnose_restore_database'].includes(previous.stage)&&!previous.actualRestore) {
+    const files=(await readdir(source)).filter(file=>/^restore-\d+\.diagnostics\.enc$/.test(file)).sort()
+    const file=previous.failure?.diagnosticFile ?? files.at(-1)
+    assert.match(file ?? '',/^restore-\d+\.diagnostics\.enc$/)
+    await verifyEncryptedBackup(path.join(source,file),passphrase)
+    const chunks=[]
+    for await(const chunk of decryptedBackup(path.join(source,file),passphrase))chunks.push(chunk)
+    report.previousDatabaseFailure={...classifyRestoreFailure(Buffer.concat(chunks).toString('utf8')),diagnosticFile:file}
+    if(report.previousDatabaseFailure.category!=='default_public_schema_conflict') {
+      report.stage='diagnose_restore_database'
+      const error=new Error('Previous native error classified; a targeted correction is required before another restore')
+      error.safe={tool:'pg_restore.exe',...report.previousDatabaseFailure,diagnosticOnly:true}
+      throw error
+    }
+  }
   const probe=net.createServer()
   await new Promise(resolve=>probe.listen(0,'127.0.0.1',resolve))
   const port=probe.address().port
@@ -103,8 +128,30 @@ try {
   } finally {await roleClient.end()}
   await server.createDatabase('athar_restore_verification')
   report.stage='restore_database'
-  await native('pg_restore.exe',[...connection,'--dbname','athar_restore_verification','--exit-on-error','--single-transaction'],
+  const restore=()=>native('pg_restore.exe',[...connection,'--dbname','athar_restore_verification','--exit-on-error','--single-transaction','--verbose'],
     decryptedBackup(path.join(source,manifest.archive.file),passphrase))
+  try {await restore()}
+  catch(error) {
+    if(error.safe?.category!=='default_public_schema_conflict')throw error
+    // This repair is permitted ONLY after the native error proves that the
+    // archive itself contains CREATE SCHEMA public. The failed single-transaction
+    // restore rolled back. Remove only the fresh empty bootstrap schema, with
+    // no CASCADE, then restore the original archived schema/owner/ACL verbatim.
+    const bootstrap=server.getPgClient('athar_restore_verification','127.0.0.1')
+    await bootstrap.connect()
+    try {
+      const schema=(await bootstrap.query(`select pg_get_userbyid(n.nspowner) as owner,
+        (select count(*) from pg_class where relnamespace=n.oid)+
+        (select count(*) from pg_proc where pronamespace=n.oid)+
+        (select count(*) from pg_type where typnamespace=n.oid) as objects
+        from pg_namespace n where n.nspname='public'`)).rows[0]
+      assert.ok(schema&&['pg_database_owner',owner].includes(schema.owner)&&Number(schema.objects)===0,'Default schema is not an empty bootstrap schema')
+      await bootstrap.query('drop schema public')
+    } finally {await bootstrap.end()}
+    report.databaseBootstrapRepair={category:'default_public_schema_conflict',emptyDefaultSchemaRemoved:true,
+      archivedSchemaOwnershipAndAcls:'Restored by the original archive; no --no-owner, --no-acl or ignored errors'}
+    await restore()
+  }
   client=server.getPgClient('athar_restore_verification','127.0.0.1'); await client.connect()
   await verifyTracedMemberships(client,rolePlan)
   report.stage='verify_restored_catalog_and_counts'

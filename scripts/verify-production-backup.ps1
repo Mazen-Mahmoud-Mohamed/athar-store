@@ -2,7 +2,8 @@
 param(
   [string]$BackupDirectory = 'D:\work\athar-backups\20261021-222206-96ea5a10',
   [switch]$DiagnoseOnly,
-  [switch]$RepairSession
+  [switch]$RepairSession,
+  [switch]$InspectRoleStructure
 )
 $ErrorActionPreference='Stop'
 $BackupDirectory=[IO.Path]::GetFullPath($BackupDirectory)
@@ -48,7 +49,7 @@ $start.FileName=(Get-Command node.exe -ErrorAction Stop).Source
 $start.UseShellExecute=$false
 $start.ArgumentList.Add('--import')
 $start.ArgumentList.Add(([uri](Join-Path $PSScriptRoot 'use-pg1711.mjs')).AbsoluteUri)
-$start.ArgumentList.Add((Join-Path $PSScriptRoot $(if($DiagnoseOnly){'diagnose-restore-roles.mjs'}else{'verify-production-backup.mjs'})))
+$start.ArgumentList.Add((Join-Path $PSScriptRoot $(if($InspectRoleStructure){'inspect-role-structure.mjs'}elseif($DiagnoseOnly){'diagnose-restore-roles.mjs'}else{'verify-production-backup.mjs'})))
 $start.Environment['ATHAR_RESTORE_DIRECTORY']=$restoreDirectory
 $start.Environment['ATHAR_BACKUP_DIRECTORY']=$BackupDirectory
 $start.Environment['ATHAR_BACKUP_PASSPHRASE']=[Net.NetworkCredential]::new('',$secret).Password
@@ -59,6 +60,22 @@ try {
   $process=[Diagnostics.Process]::Start($start)
   $start.Environment.Remove('ATHAR_BACKUP_PASSPHRASE') | Out-Null
   $process.WaitForExit()
+  if($InspectRoleStructure) {
+    if($process.ExitCode -ne 0) { throw 'Offline statement diagnosis failed; no database operation attempted.' }
+    Write-Host 'Keep this window open. Share only the structural JSON above. No restoration has been attempted.'
+    Write-Host 'After the exact syntax has been reviewed and fixed, type retry here. The existing passphrase remains only in this local session.'
+    while($true) {
+      $choice=Read-Host 'Type retry after the verified correction, or stop to dispose of the passphrase'
+      if($choice -cne 'retry') { throw 'Diagnostic session stopped; no restoration or deployment performed.' }
+      $newHash=($codeFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
+      if($newHash -cne $codeHash) { break }
+      Write-Host 'Verifier code is unchanged; no restore was run. Session remains open for the correction.'
+    }
+    $InspectRoleStructure=$false
+    $RepairSession=$true
+    $restoreDirectory=New-PrivateRestoreDirectory
+    continue
+  }
   if($DiagnoseOnly) {
     if($process.ExitCode -ne 0) { throw 'Private restore diagnosis failed; no restore or production operation was attempted.' }
     return
@@ -69,12 +86,16 @@ try {
     if($RepairSession) {
       Write-Host 'Repair session paused. Share only the SAFE failure JSON printed above. Do not share encrypted diagnostics or passphrases.'
       Write-Host 'The passphrase remains in this local process only. After the local correction, type retry here; no second passphrase entry is needed.'
-      $choice=Read-Host 'Type retry after the correction, or stop to dispose of the passphrase'
-      if($choice -ceq 'retry') {
+      while($true) {
+        $choice=Read-Host 'Type retry after the correction, or stop to dispose of the passphrase'
+        if($choice -cne 'retry') { break }
         $newHash=($codeFiles | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
-        if($newHash -ceq $codeHash) { throw 'Verifier code is unchanged; refusing to repeat the same failing attempt.' }
-        $restoreDirectory=New-PrivateRestoreDirectory
-        continue
+        if($newHash -cne $codeHash) { break }
+        Write-Host 'Verifier code is unchanged; refusing to repeat the same failing attempt. Session remains open.'
+      }
+      if($choice -ceq 'retry') {
+          $restoreDirectory=New-PrivateRestoreDirectory
+          continue
       }
     }
     throw 'Isolated recovery verification failed. Do not deploy. See safe restore-verification.json in the backup directory.'
