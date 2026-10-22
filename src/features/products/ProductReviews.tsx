@@ -32,6 +32,7 @@ export function ProductReviews({ productId }: { productId: string }) {
         <div className="flex gap-1 text-gold-deep" aria-label={`${review.rating} من 5 نجوم`}>
           {Array.from({ length: 5 }, (_,i) => <Star key={i} className="size-4" fill={i < review.rating ? 'currentColor' : 'none'} />)}
         </div>
+        <p className="mt-3 text-sm font-semibold text-brown">{review.display_name || 'عميل من أثر'}</p>
         {review.comment && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-brown">{review.comment}</p>}
         {review.photoUrl && <a href={review.photoUrl} target="_blank" rel="noopener noreferrer" aria-label="عرض صورة التقييم">
           <img src={review.photoUrl} alt="صورة من تقييم عميل" loading="lazy" className="mt-3 max-h-60 rounded-lg object-contain" />
