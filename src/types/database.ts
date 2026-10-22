@@ -31,6 +31,8 @@ export type PaymentStatus =
 export type Profile = {
   id: string
   full_name: string | null
+  phone: string | null
+  default_address: string | null
   role: UserRole
   created_at: string
   updated_at: string
@@ -68,6 +70,8 @@ export type Product = {
 
 export type Order = {
   id: string
+  customer_id: string | null
+  cancellation_requested_at: string | null
   customer_name: string
   phone: string
   address: string
@@ -126,6 +130,8 @@ export type Database = {
         Update: {
           id?: string
           full_name?: string | null
+          phone?: string | null
+          default_address?: string | null
           role?: UserRole
           created_at?: string
           updated_at?: string
@@ -326,7 +332,7 @@ export type Database = {
         Args: Record<string, never>
         Returns: boolean
       }
-      create_guest_order: {
+      create_customer_order: {
         Args: {
           p_customer_name: string
           p_phone: string
@@ -336,6 +342,10 @@ export type Database = {
           p_payment_method?: PaymentMethod
         }
         Returns: Json
+      }
+      customer_cancel_order: {
+        Args: { p_order_id: string }
+        Returns: Order
       }
       mark_xpay_order_paid: {
         Args: {

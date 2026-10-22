@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
@@ -16,7 +17,6 @@ import {
   signInWithPassword,
   signOut as authSignOut,
 } from '@/services/authService'
-import { AppError } from '@/lib/errors'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import type { Profile } from '@/types'
 
@@ -40,10 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const accessVersion = useRef(0)
 
   const resolveAccess = useCallback(async (nextSession: Session | null) => {
+    const version = ++accessVersion.current
     setSession(nextSession)
     setUser(nextSession?.user ?? null)
+    setIsAdmin(false)
+    setProfile(null)
 
     if (!isSupabaseConfigured || !nextSession) {
       setProfile(null)
@@ -56,12 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getCurrentProfile(),
         isCurrentUserAdmin(),
       ])
-      setProfile(nextProfile)
-      setIsAdmin(admin)
+      if (version === accessVersion.current) {
+        setProfile(nextProfile)
+        setIsAdmin(admin)
+      }
       return { isAdmin: admin, profile: nextProfile }
     } catch {
-      setProfile(null)
-      setIsAdmin(false)
+      if (version === accessVersion.current) {
+        setProfile(null)
+        setIsAdmin(false)
+      }
       return { isAdmin: false, profile: null }
     }
   }, [])
@@ -91,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (event === 'SIGNED_OUT') {
+          accessVersion.current++
           setSession(null)
           setUser(null)
           setProfile(null)
@@ -110,7 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           event === 'USER_UPDATED' ||
           event === 'PASSWORD_RECOVERY'
         ) {
-          void resolveAccess(nextSession)
+          // Auth callbacks execute under the SDK lock. Query after it is released.
+          setTimeout(() => { if (mounted) void resolveAccess(nextSession) }, 0)
         }
       })
       unsubscribe = () => data.subscription.unsubscribe()
@@ -146,16 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true)
         try {
           const result = await signInWithPassword(email, password)
-          const access = await resolveAccess(result.session)
-
-          if (!access.isAdmin) {
-            await authSignOut()
-            await resolveAccess(null)
-            throw new AppError(
-              'forbidden',
-              'هذا الحساب ليس لديه صلاحية إدارة متجر أثر.',
-            )
-          }
+          await resolveAccess(result.session)
         } finally {
           setLoading(false)
         }

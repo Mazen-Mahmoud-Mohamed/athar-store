@@ -54,6 +54,14 @@ export function Footer() {
                   الشروط والأحكام
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/privacy-policy"
+                  className="text-sm text-cream/75 transition-colors hover:text-cream"
+                >
+                  سياسة الخصوصية
+                </Link>
+              </li>
             </ul>
           </div>
 

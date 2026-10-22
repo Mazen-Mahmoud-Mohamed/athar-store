@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/features/admin/AuthProvider'
 import { CatalogEmpty } from '@/features/catalog/CatalogStates'
 import { useCart } from '@/features/cart/cart-context'
 import {
@@ -58,6 +59,17 @@ export function CheckoutPage() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
+  const { profile, user } = useAuth()
+
+  useEffect(() => {
+    if (profile) {
+      setCustomerName((prev) => prev || profile.full_name || (user?.user_metadata?.full_name as string) || '')
+      setPhone((prev) => prev || profile.phone || '')
+      setAddress((prev) => prev || profile.default_address || '')
+    } else if (user?.user_metadata?.full_name) {
+      setCustomerName((prev) => prev || (user.user_metadata.full_name as string))
+    }
+  }, [profile, user])
   const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({})
   const [cartMessages, setCartMessages] = useState<string[]>([])
   const [needsReview, setNeedsReview] = useState(false)
