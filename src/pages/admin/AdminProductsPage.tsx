@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getErrorMessage } from '@/lib/errors'
 import { formatPrice } from '@/lib/utils'
+import { optimizeExistingCatalogImages } from '@/services/imageMaintenanceService'
 import { adminGetAllCategories } from '@/services/categoryService'
 import {
   adminDeleteProduct,
@@ -38,6 +39,8 @@ export function AdminProductsPage() {
   const [sort, setSort] = useState<SortKey>('updated_desc')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+  const [optimizingImages, setOptimizingImages] = useState(false)
+  const [imageProgress, setImageProgress] = useState('')
 
   async function reload() {
     const [productRows, categoryRows] = await Promise.all([
@@ -99,6 +102,22 @@ export function AdminProductsPage() {
 
     return rows
   }, [products, search, categoryId, activeFilter, sort])
+
+  async function optimizeAllImages() {
+    if (optimizingImages || !window.confirm('فحص وضغط صور المنتجات والتصنيفات الحالية؟ سيتم استبدال الصور فقط إذا كان حجم النسخة المحسنة أصغر بفارق واضح.')) return
+    setOptimizingImages(true)
+    setImageProgress('جارٍ فحص الصور…')
+    try {
+      const result = await optimizeExistingCatalogImages(({ done, total }) => setImageProgress(`جارٍ فحص الصور: ${done} / ${total}`))
+      toast.success(`تم تحسين ${result.replaced} صورة وتوفير ${Math.round(result.savedBytes / 1024)} كيلوبايت.`)
+      if (result.failed) toast.warning(`تعذر فحص ${result.failed} صورة.`)
+      setImageProgress(`انتهى: ${result.replaced} صورة من ${result.scanned}`)
+      await reload()
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'تعذر تحسين الصور'))
+      setImageProgress('')
+    } finally { setOptimizingImages(false) }
+  }
 
   async function toggleAvailability(product: Product) {
     setBusyId(product.id)
@@ -171,6 +190,13 @@ export function AdminProductsPage() {
             </Button>
           }
         />
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" size="sm" disabled={optimizingImages || loading} onClick={() => void optimizeAllImages()}>
+            {optimizingImages ? 'جارٍ تحسين الصور…' : 'تحسين صور المنتجات والتصنيفات الحالية'}
+          </Button>
+          {imageProgress && <span className="text-xs text-mocha" role="status">{imageProgress}</span>}
+        </div>
 
         <div className="grid gap-3 rounded-xl border border-taupe/40 bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5 sm:col-span-2">
