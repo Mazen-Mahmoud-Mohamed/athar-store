@@ -11,6 +11,7 @@ export function OrderProductReviews({ orderId, items }: {
   const [rating, setRating] = useState<Record<string, number>>({})
   const [comments, setComments] = useState<Record<string, string>>({})
   const [photos, setPhotos] = useState<Record<string, File | null>>({})
+  const [showNames, setShowNames] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -28,7 +29,7 @@ export function OrderProductReviews({ orderId, items }: {
     setMessage('')
     setSaving(itemId)
     try {
-      const result = await submitVerifiedReview(itemId, rating[itemId], comments[itemId] ?? '', photos[itemId])
+      const result = await submitVerifiedReview(itemId, rating[itemId], comments[itemId] ?? '', photos[itemId], showNames[itemId] ?? false)
       setReviews(await getMyOrderReviews(orderId))
       setMessage(result.imageWarning ? `تم إرسال التقييم للمراجعة. ${result.imageWarning}` : 'تم إرسال التقييم للمراجعة. لن يظهر للزوار إلا بعد موافقة الإدارة.')
     } catch {
@@ -58,6 +59,11 @@ export function OrderProductReviews({ orderId, items }: {
               className="mb-3 w-full rounded-md border border-taupe/50 bg-transparent p-3 text-sm" placeholder="إيه رأيك في المنتج؟" />
             <label className="mb-1 block text-sm">صورة اختيارية (حتى 5 ميجابايت)</label>
             <input type="file" accept="image/jpeg,image/png,image/webp" className="mb-3 block w-full text-sm" onChange={e=>setPhotos(s=>({...s,[item.id]:e.target.files?.[0] ?? null}))} />
+            <label className="mb-3 flex items-center gap-2 text-sm text-brown">
+              <input type="checkbox" checked={showNames[item.id] ?? false} onChange={e => setShowNames(s => ({ ...s, [item.id]: e.target.checked }))} disabled={!!saving} />
+              إظهار اسمي مع التقييم (اختياري)
+            </label>
+            <p className="mb-3 text-xs text-mocha">سيظهر الاسم المحفوظ في ملفك الشخصي بعد موافقة الإدارة فقط. لو سبتِ الاختيار مقفول، التقييم هيظهر بدون اسم.</p>
             <Button disabled={!rating[item.id] || !!saving} onClick={()=>void submit(item.id)} type="button">
               {saving===item.id ? 'جارٍ الإرسال...' : 'إرسال التقييم'}
             </Button>
