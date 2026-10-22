@@ -20,6 +20,7 @@ import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
+import { AdminReviewsPage } from '@/pages/admin/AdminReviewsPage'
 import { CustomerAuthPage } from '@/pages/CustomerAuthPage'
 import { AccountOrdersPage } from '@/pages/account/AccountOrdersPage'
 import { AccountOrderDetailPage } from '@/pages/account/AccountOrderDetailPage'
@@ -135,6 +136,7 @@ export default function App() {
                     </Suspense>
                   }
                 />
+                <Route path="reviews" element={<AdminReviewsPage />} />
                 <Route
                   path="orders"
                   element={

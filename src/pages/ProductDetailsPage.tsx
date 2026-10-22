@@ -16,6 +16,7 @@ import {
   ProductDetailsSkeleton,
 } from '@/features/catalog/CatalogStates'
 import { ProductCard } from '@/features/products/ProductCard'
+import { ProductReviews } from '@/features/products/ProductReviews'
 import {
   ProductGallery,
   resolveProductGalleryImages,
@@ -342,6 +343,8 @@ export function ProductDetailsPage() {
             ) : null}
           </div>
         </div>
+
+        <ProductReviews productId={current.id} />
 
         {related.length > 0 ? (
           <section className="mt-16 sm:mt-20" aria-labelledby="related-heading">

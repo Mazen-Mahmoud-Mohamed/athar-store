@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageMeta } from '@/components/seo/PageMeta'
+import { OrderProductReviews } from '@/features/account/OrderProductReviews'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
@@ -197,6 +198,10 @@ export function AccountOrderDetailPage() {
                 </p>
               )}
             </div>
+          )}
+
+          {order.status === 'delivered' && (
+            <OrderProductReviews orderId={order.id} items={order.items} />
           )}
 
           {/* Cancellation pending notice */}
