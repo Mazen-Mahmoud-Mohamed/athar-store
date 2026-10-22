@@ -83,7 +83,7 @@ export async function getPublicReviews(productId: string): Promise<{
   return { reviews: signed, average: Number(summary?.average_rating ?? 0), count: Number(summary?.review_count ?? 0) }
 }
 
-export async function adminListProductReviews(status: string = 'pending') {
+export async function adminListProductReviews(status: 'pending' | 'approved' | 'hidden' | 'all' = 'pending') {
   const client = requireSupabase()
   let query = client.from('product_reviews').select('*').order('created_at', { ascending: false }).limit(100)
   if (status !== 'all') query = query.eq('status', status)
