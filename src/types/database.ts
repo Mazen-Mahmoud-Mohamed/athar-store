@@ -125,6 +125,8 @@ export type ProductReview = {
   comment: string | null
   photo_path: string | null
   status: 'pending' | 'approved' | 'hidden'
+  show_author_name: boolean
+  author_display_name: string | null
   moderated_by: string | null
   moderated_at: string | null
   created_at: string
@@ -146,6 +148,8 @@ export type Database = {
           comment?: string | null
           photo_path?: string | null
           status?: ProductReview['status']
+          show_author_name?: boolean
+          author_display_name?: string | null
           moderated_by?: string | null
           moderated_at?: string | null
           created_at?: string
@@ -156,6 +160,8 @@ export type Database = {
           comment?: string | null
           photo_path?: string | null
           status?: ProductReview['status']
+          show_author_name?: boolean
+          author_display_name?: string | null
           moderated_by?: string | null
           moderated_at?: string | null
           updated_at?: string
@@ -373,8 +379,12 @@ export type Database = {
     Views: Record<string, never>
     Functions: {
       submit_product_review: {
-        Args: { p_order_item_id: string; p_rating: number; p_comment?: string | null }
+        Args: { p_order_item_id: string; p_rating: number; p_comment?: string | null; p_show_author_name?: boolean }
         Returns: ProductReview
+      }
+      get_product_reviews_with_names: {
+        Args: { p_product_id: string }
+        Returns: { review_id: string; rating: number; comment: string | null; photo_path: string | null; created_at: string; display_name: string | null }[]
       }
       attach_product_review_photo: {
         Args: { p_review_id: string; p_path: string }

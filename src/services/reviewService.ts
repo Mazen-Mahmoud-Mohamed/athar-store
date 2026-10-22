@@ -10,9 +10,12 @@ export type ProductReview = {
   photo_path: string | null
   status: 'pending' | 'approved' | 'hidden'
   created_at: string
+  show_author_name: boolean
+  author_display_name: string | null
 }
 export type VisibleProductReview = {
   review_id: string
+  display_name: string | null
   rating: number
   comment: string | null
   photo_path: string | null
@@ -32,12 +35,14 @@ export async function submitVerifiedReview(
   rating: number,
   comment: string,
   photo?: File | null,
+  showAuthorName = false,
 ): Promise<{ imageWarning?: string }> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('submit_product_review', {
     p_order_item_id: orderItemId,
     p_rating: rating,
     p_comment: comment.trim() || null,
+    p_show_author_name: showAuthorName,
   })
   if (error) throw error
   const review = data as ProductReview
@@ -68,7 +73,7 @@ export async function getPublicReviews(productId: string): Promise<{
 }> {
   const client = requireSupabase()
   const [reviewsResponse, summaryResponse] = await Promise.all([
-    client.rpc('get_product_reviews', { p_product_id: productId }),
+    client.rpc('get_product_reviews_with_names', { p_product_id: productId }),
     client.rpc('get_product_rating_summary', { p_product_id: productId }),
   ])
   if (reviewsResponse.error) throw reviewsResponse.error
