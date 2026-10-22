@@ -5,7 +5,7 @@ import { PageMeta } from '@/components/seo/PageMeta'
 import { adminListProductReviews, adminModerateProductReview, reviewPhotoUrl, type ProductReview } from '@/services/reviewService'
 
 export function AdminReviewsPage() {
-  const [status, setStatus] = useState('pending')
+  const [status, setStatus] = useState<'pending' | 'approved' | 'hidden' | 'all'>('pending')
   const [reviews, setReviews] = useState<(ProductReview & { photoUrl?: string | null })[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
@@ -39,7 +39,7 @@ export function AdminReviewsPage() {
     <AdminPageHeader title="تقييمات العملاء" description="راجعي النجوم والتعليقات والصور قبل عرضها على الموقع." />
     <div className="flex flex-wrap gap-2">
       {[['pending','بانتظار المراجعة'],['approved','المنشورة'],['hidden','المخفية'],['all','الكل']].map(([value,label])=>
-        <Button key={value} variant={status===value?'default':'outline'} size="sm" onClick={()=>setStatus(value)}>{label}</Button>)}
+        <Button key={value} variant={status===value?'default':'outline'} size="sm" onClick={()=>setStatus(value as 'pending' | 'approved' | 'hidden' | 'all')}>{label}</Button>)}
     </div>
     {error && <p role="alert" className="rounded-lg bg-danger/5 p-3 text-danger">{error}</p>}
     {loading ? <p>جارٍ تحميل التقييمات...</p> : !reviews.length ? <p className="text-mocha">لا توجد تقييمات في هذا القسم.</p> : (
