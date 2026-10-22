@@ -181,13 +181,13 @@ export function ProductsPage() {
           )}
         />
       ) : null}
-      <div className="container-athar py-10 sm:py-14">
-        <div className="mb-8 max-w-2xl">
-          <p className="mb-2 text-xs tracking-[0.25em] text-gold-deep">المجموعة الكاملة</p>
-          <h1 className="font-display text-3xl font-semibold sm:text-4xl">
+      <div className="container-athar py-6 sm:py-9">
+        <div className="mb-6 max-w-2xl sm:mb-7">
+          <p className="mb-1.5 text-[11px] tracking-[0.18em] text-gold-deep">المجموعة الكاملة</p>
+          <h1 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
             {query ? `نتائج البحث: ${query}` : 'المنتجات'}
           </h1>
-          <p className="mt-3 text-sm leading-7 text-mocha">
+          <p className="mt-2 text-sm leading-6 text-mocha">
             اكتشفي قطع أثر المختارة بعناية — من الحقائب إلى الإكسسوارات.
           </p>
           {query ? (
@@ -199,12 +199,13 @@ export function ProductsPage() {
 
         <CatalogControls
           categories={categories}
+          compact
           values={controls}
           resultCount={filtered.length}
           resultCountLoading={loading}
           onChange={updateControls}
           onClear={clearControls}
-          className="mb-8 border-b border-taupe/25 pb-8"
+          className="mb-5 sm:mb-6"
         />
 
         {error ? (
@@ -223,7 +224,7 @@ export function ProductsPage() {
             className="lg:grid-cols-3 xl:grid-cols-4"
           />
         ) : !error && filtered.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((product, index) => (
               <ProductCard
                 key={product.id}
