@@ -31,30 +31,47 @@ function Invoke-PrivateSql([string]$Sql) {
   } finally {$pipe.Dispose();$process.Dispose()}
 }
 function Get-WorkerKey {
-  $process=New-CliProcess @('projects','api-keys','--project-ref',$ref,'--output','json')
-  $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
-  $process.WaitForExit()
-  if($process.ExitCode -ne 0){throw 'Could not obtain existing worker credential; no values logged'}
-  $keys=$stdout.Result | ConvertFrom-Json
-  $key=@($keys | Where-Object {$_.name -ceq 'service_role'})
-  if($key.Count -ne 1 -or $key[0].api_key -notmatch '^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'){throw 'Expected legacy service-role credential missing'}
-  $value=$key[0].api_key
-  $part=$value.Split('.')[1].Replace('-','+').Replace('_','/')
-  $part=$part.PadRight($part.Length+(4-$part.Length%4)%4,'=')
-  $claims=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($part)) | ConvertFrom-Json
-  if($claims.ref -cne $ref -or $claims.role -cne 'service_role'){throw 'Worker credential project/role mismatch'}
-  return $value
+  $result=Invoke-PrivateSql "select decrypted_secret as worker_token from vault.decrypted_secrets where name='athar_webhook_worker_service_key';"
+  if($result.rows.Count -ne 1 -or $result.rows[0].worker_token -notmatch '^[a-f0-9]{64}$'){throw 'Dedicated worker credential unavailable; no value logged'}
+  return $result.rows[0].worker_token
+}
+function Set-PrivateWorkerSecret([string]$Value) {
+  # The CLI env-file loader rejects named pipes. Encrypt the directory BEFORE
+  # creating the token file; EFS plus the current-user ACL protects it at rest.
+  $directory=Join-Path 'D:\work\athar-release-secrets' ([guid]::NewGuid().ToString('N'))
+  $directory=[IO.Path]::GetFullPath($directory)
+  if($directory -notmatch '^D:\\work\\athar-release-secrets\\[a-f0-9]{32}$'){throw 'Unexpected private secret directory'}
+  New-Item -ItemType Directory -Path $directory | Out-Null
+  $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  & icacls.exe $directory '/inheritance:r' '/grant:r' "*$($sid):(OI)(CI)F" | Out-Null
+  if($LASTEXITCODE -ne 0){throw 'Private token directory ACL failed'}
+  & 'C:\Windows\System32\cipher.exe' '/e' '/a' $directory | Out-Null
+  if($LASTEXITCODE -ne 0 -or -not ((Get-Item -LiteralPath $directory).Attributes -band [IO.FileAttributes]::Encrypted)){throw 'Token directory is not EFS encrypted'}
+  $file=Join-Path $directory 'worker.env'
+  try {
+    [IO.File]::WriteAllText($file,"ATHAR_WEBHOOK_WORKER_KEY=$Value`n",[Text.UTF8Encoding]::new($false))
+    if(-not ((Get-Item -LiteralPath $file).Attributes -band [IO.FileAttributes]::Encrypted)){throw 'Token file did not inherit EFS encryption'}
+    $process=New-CliProcess @('secrets','set','--project-ref',$ref,'--env-file',$file)
+    $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
+    if(-not $process.WaitForExit(60000)){$process.Kill($true);throw 'Worker token configuration timed out'}
+    if($process.ExitCode -ne 0){throw 'Worker token configuration failed; raw output withheld'}
+  } finally {
+    if(Test-Path -LiteralPath $file){Remove-Item -LiteralPath $file}
+    Remove-Item -LiteralPath $directory
+  }
 }
 switch($Action) {
   Preflight {Invoke-PrivateSql "select current_setting('server_version') as version,(select json_agg(version order by version) from supabase_migrations.schema_migrations) as migrations,current_setting('shared_preload_libraries') like '%pg_cron%' as cron_preloaded,(select count(*) from vault.secrets where name='athar_webhook_worker_service_key') as worker_vault_entries;" | ConvertTo-Json -Depth 8}
   SchedulerPrerequisites {Invoke-PrivateSql "begin; create extension if not exists pg_cron with schema pg_catalog; create extension if not exists pg_net with schema extensions; revoke all on net.http_request_queue,net._http_response from public,anon,authenticated; commit; select extname,extversion from pg_extension where extname in ('pg_cron','pg_net');" | ConvertTo-Json -Depth 8}
   WorkerCredential {
-    $key=Get-WorkerKey
+    $existing=Invoke-PrivateSql "select decrypted_secret as worker_token from vault.decrypted_secrets where name='athar_webhook_worker_service_key';"
+    $key=if($existing.rows.Count -eq 1 -and $existing.rows[0].worker_token -match '^[a-f0-9]{64}$'){$existing.rows[0].worker_token}else{[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant()}
     try {
       # Key travels only in a current-user-only pipe, never a file or process argument.
-      $sql="do `$`$ begin if exists(select 1 from vault.secrets where name='athar_webhook_worker_service_key') then if not exists(select 1 from vault.decrypted_secrets where name='athar_webhook_worker_service_key' and decrypted_secret='$key') then raise exception 'WORKER_VAULT_CONFLICT'; end if; else perform vault.create_secret('$key','athar_webhook_worker_service_key','Athar scheduled webhook inbox processor'); end if; end `$`$; select count(*) as worker_credential_entries from vault.secrets where name='athar_webhook_worker_service_key';"
+      Set-PrivateWorkerSecret $key
+      $sql="do `$`$ declare v_id uuid; begin select id into v_id from vault.secrets where name='athar_webhook_worker_service_key'; if v_id is not null then perform vault.update_secret(v_id,'$key'); else perform vault.create_secret('$key','athar_webhook_worker_service_key','Dedicated Athar webhook worker token'); end if; end `$`$; select count(*) as worker_credential_entries from vault.secrets where name='athar_webhook_worker_service_key';"
       Invoke-PrivateSql $sql | ConvertTo-Json -Depth 8
-    } finally {$key=$null;$sql=$null}
+    } finally {$key=$null;$sql=$null;$existing=$null}
   }
   Migrations {
     $sql=& node (Join-Path $PSScriptRoot 'order-release-sql.mjs')
@@ -63,13 +80,18 @@ switch($Action) {
   }
   Schedule {Invoke-PrivateSql (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'schedule-webhook-inbox.sql')) | ConvertTo-Json -Depth 8}
   Health {
-    Invoke-PrivateSql "select jobid,jobname,schedule,active from cron.job where jobname='athar-webhook-inbox'; select status,count(*) from cron.job_run_details where jobid in (select jobid from cron.job where jobname='athar-webhook-inbox') group by status; select id,status_code,timed_out,error_msg is not null as transport_error from net._http_response order by id desc limit 5; select public.xpay_webhook_queue_status() as queue; select checkout_maintenance,financial_maintenance from public.release_controls;" | ConvertTo-Json -Depth 12
+    Invoke-PrivateSql "select jsonb_build_object('jobs',(select jsonb_agg(j) from (select jobid,jobname,schedule,active from cron.job where jobname='athar-webhook-inbox') j),'runs',(select jsonb_agg(r) from (select status,count(*) from cron.job_run_details where jobid in (select jobid from cron.job where jobname='athar-webhook-inbox') group by status) r),'http',(select jsonb_agg(h) from (select id,status_code,timed_out,error_msg is not null as transport_error from net._http_response order by id desc limit 5) h),'queue',public.xpay_webhook_queue_status(),'maintenance',(select row_to_json(c) from (select checkout_maintenance,financial_maintenance from public.release_controls) c)) as health;" | ConvertTo-Json -Depth 16
   }
   ResumeProcessing {Invoke-PrivateSql 'select public.resume_xpay_webhook_processing(); select checkout_maintenance,financial_maintenance from public.release_controls;' | ConvertTo-Json -Depth 8}
   Drain {
     $key=Get-WorkerKey
     try {
-      $result=Invoke-RestMethod -Method Post -Uri "https://$ref.supabase.co/functions/v1/xpay-process-webhook-inbox" -Headers @{Authorization="Bearer $key"} -ContentType 'application/json' -Body '{}' -TimeoutSec 75
+      $result=Invoke-RestMethod -Method Post -Uri "https://$ref.supabase.co/functions/v1/xpay-process-webhook-inbox" -Headers @{Authorization="Bearer $key"} -ContentType 'application/json' -Body '{}' -TimeoutSec 75 -SkipHttpErrorCheck -StatusCodeVariable workerHttpStatus
+      if($workerHttpStatus -ge 400) {
+        $safeCode=if($result.error -in @('unauthorized','claim_failed','status_failed','unavailable','BOOT_ERROR','WORKER_ERROR')){$result.error}else{'unclassified'}
+        Write-Output (@{http_status=[int]$workerHttpStatus;error=$safeCode}|ConvertTo-Json -Compress)
+        throw 'Worker returned a non-success HTTP status'
+      }
       $result | ConvertTo-Json -Depth 10
     } catch {throw 'Worker request failed; raw response and credentials withheld. Keep checkout closed and inspect scheduler/queue status.'} finally {$key=$null}
   }

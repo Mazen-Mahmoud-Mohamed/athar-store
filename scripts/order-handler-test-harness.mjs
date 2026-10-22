@@ -10,7 +10,7 @@ export async function loadHandlers(client) {
   const previousDeno = globalThis.Deno
   const previousFetch = globalThis.fetch
   const secret = 'whsec_local_regression_fixture'
-  const env = { XPAY_MODE: 'test', XPAY_WEBHOOK_SECRET: secret, XPAY_SECRET_KEY: 'sk_test_local_fixture', SUPABASE_SERVICE_ROLE_KEY: 'local_service_fixture' }
+  const env = { XPAY_MODE: 'test', XPAY_WEBHOOK_SECRET: secret, XPAY_SECRET_KEY: 'sk_test_local_fixture', SUPABASE_SERVICE_ROLE_KEY: 'local_service_fixture', ATHAR_WEBHOOK_WORKER_KEY: 'local_worker_fixture' }
   let handler
   const requestClient = new AsyncLocalStorage()
   globalThis.Deno = { env: { get: key => env[key] }, serve: fn => { handler = fn } }
@@ -90,9 +90,9 @@ export async function loadHandlers(client) {
     async create() {
       return create(new Request('http://localhost/create', {method:'POST',body:'{}'}))
     },
-    async worker(authorized = true, connection = client) {
+    async worker(authorized = true, connection = client, credential = 'local_worker_fixture') {
       return requestClient.run(connection, () => worker(new Request('http://localhost/worker', {
-        method: 'POST', headers: { Authorization: authorized ? 'Bearer local_service_fixture' : 'Bearer invalid' },
+        method: 'POST', headers: { Authorization: authorized ? `Bearer ${credential}` : 'Bearer invalid' },
       })))
     },
     async webhook(event, signatureValid = true, connection = client) {

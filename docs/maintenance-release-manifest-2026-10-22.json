@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-22T00:29:19.464Z",
+  "generatedAt": "2026-10-22T00:41:53.963Z",
   "baseHead": "f75fb814e055ee5350d9a42e200000d1b384b809",
   "remote": "https://github.com/Mazen-Mahmoud-Mohamed/athar-store.git",
   "productionModified": true,
   "deployed": false,
   "productionBackupCreated": true,
   "productionBackupRestoreTested": true,
-  "readiness": "Production release executing: recovery passed; scheduler extensions and private Vault reference provisioned; financial/schema cutover pending",
+  "readiness": "Backend deployed and verified; authenticated hosted minute worker HTTP 200 confirmed; frontend publication and reopening follow this release commit",
   "tests": {
     "postgres": "17.11",
     "regressionGroups": 62,
@@ -17,12 +17,13 @@
     "lint": "PASS; 10 existing warnings",
     "encryptedSyntheticRestore": "PASS; real pg_restore, count/stock/migration comparison; wrong-key and tamper rejection",
     "productionRestore": "PASS: actual encrypted production backup restored, roles/parameter ACLs/RLS/counts verified, migrations 012-014 rehearsed, encrypted temporary data removed",
-    "hostedScheduler": "NOT RUN",
+    "hostedScheduler": "PASS: cron job 1 active every minute; pg_net response IDs 7 and 8 HTTP 200, no timeouts; queue empty",
     "backupFollowup": "PASS: complete native archive decoding and actual synthetic restore on PostgreSQL 17.11",
     "backupFailureFix": "PASS: native error/exit redaction and launch handling, strict production TLS without password, native synthetic dump/roles/decode/actual restore; no full order suite rerun",
     "isolatedRecoveryVerifier": "PASS: exact CREATE/ALTER SQLSTATE and statement/source line; rollback; 42501 GRANTED BY probe and implicit grantor repair; effective multiple-grantor option union; actual synthetic encrypted restore/RLS; migrations 012-014 rehearsal; EFS cleanup",
     "restoreFollowup": "PASS: exact parameter-grant regression, structural redaction, native restore diagnostics, selected-schema bootstrap conflict repair and PostgreSQL 17.11 actual synthetic restore",
-    "releaseCredentialTransport": "PASS: current-user-only named pipe; no secret files, process arguments or output"
+    "releaseCredentialTransport": "PASS: SQL uses current-user-only named pipe; worker-only env input uses current-user-only EFS D: file because CLI rejects env named pipes; temporary encrypted file removed",
+    "workerDedicatedAuth": "PASS: dedicated token accepted; browser/service credentials rejected; missing token fails closed; no financial mutations"
   },
   "functionDeployments": [
     "xpay-webhook",
@@ -114,8 +115,8 @@
     },
     {
       "path": "scripts/order-handler-test-harness.mjs",
-      "bytes": 6575,
-      "sha256": "409a67621203ba20b49f644b7709914977a6c5154716fccc7d7dfb7660b2982c"
+      "bytes": 6654,
+      "sha256": "d6d021a61da989dc96a92e011e31ffc1d63a5c0988d4d48d89854331f4751d0d"
     },
     {
       "path": "scripts/order-storefront-test-harness.mjs",
@@ -169,8 +170,8 @@
     },
     {
       "path": "supabase/functions/xpay-process-webhook-inbox/index.ts",
-      "bytes": 2091,
-      "sha256": "eb9aaf094ddd444b951b4d5f93e3ff629949ded0daf66d92923d035f30608a17"
+      "bytes": 2090,
+      "sha256": "6cf0fcaf0e1b9976bb2a5d4c60fbc867a3995d18dabf26defbab4948eec4c36a"
     },
     {
       "path": "scripts/use-pg1711.mjs",
@@ -204,8 +205,8 @@
     },
     {
       "path": "scripts/schedule-webhook-inbox.sql",
-      "bytes": 1374,
-      "sha256": "03d4a6e190cf8f755f1859181e9ec051fb8e4a0555ab0fa4cc346fd52db92ac9"
+      "bytes": 1515,
+      "sha256": "4eece6f5a60b109465b0c94528c0806ace121b94316deb0173a767b914f90b30"
     },
     {
       "path": "docs/release-preparation-2026-10-22.md",
@@ -309,13 +310,23 @@
     },
     {
       "path": "scripts/production-release.ps1",
-      "bytes": 7668,
-      "sha256": "b1614343b7df151847d238d7cd4b6dc664e2c240f72cd72beee9b4ca5bb09039"
+      "bytes": 9787,
+      "sha256": "1962d2678f88fe81f8a6debc56e1e3fb4963bde12f836a202177005980b3cd04"
     },
     {
       "path": "docs/restore-database-compatibility-2026-10-22.md",
       "bytes": 1958,
       "sha256": "03f3827ea3673a36892fec9260460cc1a52d9a7bf920b8af10375c9c43ebe545"
+    },
+    {
+      "path": "scripts/test-worker-auth.mjs",
+      "bytes": 1280,
+      "sha256": "82b94217af8cf93d8b59846d34cda8aa81c5b7fa2d8e3fd6bd90b0e0cb2e3a72"
+    },
+    {
+      "path": "scripts/verify-live-storefront.mjs",
+      "bytes": 3757,
+      "sha256": "454e95d2e9a36770dccc42d5b9be758c75318e8430962407b75b77e0424fd5c8"
     }
   ],
   "deltaThisPreparation": [
@@ -341,8 +352,8 @@
     },
     {
       "path": "scripts/order-handler-test-harness.mjs",
-      "bytes": 6575,
-      "sha256": "409a67621203ba20b49f644b7709914977a6c5154716fccc7d7dfb7660b2982c"
+      "bytes": 6654,
+      "sha256": "d6d021a61da989dc96a92e011e31ffc1d63a5c0988d4d48d89854331f4751d0d"
     },
     {
       "path": "scripts/test-order-workflow.mjs",
@@ -366,8 +377,8 @@
     },
     {
       "path": "supabase/functions/xpay-process-webhook-inbox/index.ts",
-      "bytes": 2091,
-      "sha256": "eb9aaf094ddd444b951b4d5f93e3ff629949ded0daf66d92923d035f30608a17"
+      "bytes": 2090,
+      "sha256": "6cf0fcaf0e1b9976bb2a5d4c60fbc867a3995d18dabf26defbab4948eec4c36a"
     },
     {
       "path": "scripts/use-pg1711.mjs",
@@ -401,8 +412,8 @@
     },
     {
       "path": "scripts/schedule-webhook-inbox.sql",
-      "bytes": 1374,
-      "sha256": "03d4a6e190cf8f755f1859181e9ec051fb8e4a0555ab0fa4cc346fd52db92ac9"
+      "bytes": 1515,
+      "sha256": "4eece6f5a60b109465b0c94528c0806ace121b94316deb0173a767b914f90b30"
     },
     {
       "path": "docs/release-preparation-2026-10-22.md",
@@ -506,13 +517,23 @@
     },
     {
       "path": "scripts/production-release.ps1",
-      "bytes": 7668,
-      "sha256": "b1614343b7df151847d238d7cd4b6dc664e2c240f72cd72beee9b4ca5bb09039"
+      "bytes": 9787,
+      "sha256": "1962d2678f88fe81f8a6debc56e1e3fb4963bde12f836a202177005980b3cd04"
     },
     {
       "path": "docs/restore-database-compatibility-2026-10-22.md",
       "bytes": 1958,
       "sha256": "03f3827ea3673a36892fec9260460cc1a52d9a7bf920b8af10375c9c43ebe545"
+    },
+    {
+      "path": "scripts/test-worker-auth.mjs",
+      "bytes": 1280,
+      "sha256": "82b94217af8cf93d8b59846d34cda8aa81c5b7fa2d8e3fd6bd90b0e0cb2e3a72"
+    },
+    {
+      "path": "scripts/verify-live-storefront.mjs",
+      "bytes": 3757,
+      "sha256": "454e95d2e9a36770dccc42d5b9be758c75318e8430962407b75b77e0424fd5c8"
     }
   ],
   "preservation": {
@@ -528,10 +549,29 @@
     "migration012And013AndRouteScroll": "Verified unchanged against prior hashes"
   },
   "pending": [
-    "Deploy durable webhook/create/status/worker bundles; provider endpoint stays enabled; documented non-2xx retry and 90-day replay cover cutover",
-    "Apply validated atomic 012-014 with maintenance active at commit",
-    "Install hosted minute schedule and verify authenticated HTTP runs",
-    "Publish frontend, drain backlog with checkout closed, verify preserved counts/security, then reopen"
+    "Publish this complete release to main and verify GitHub Pages and live browser flows",
+    "Resume queued financial processing with checkout closed, recheck preservation/security and empty backlog, reopen checkout"
   ],
-  "productionBackupDirectory": "D:/work/athar-backups/20261021-222206-96ea5a10"
+  "productionBackupDirectory": "D:/work/athar-backups/20261021-222206-96ea5a10",
+  "productionDeployment": {
+    "migrationsApplied": [
+      "20261020000012",
+      "20261021000013",
+      "20261021000014"
+    ],
+    "functions": {
+      "xpay-webhook": 14,
+      "xpay-create-payment": 10,
+      "xpay-payment-status": 9,
+      "xpay-process-webhook-inbox": 2
+    },
+    "scheduler": {
+      "jobId": 1,
+      "schedule": "* * * * *",
+      "http200Verified": true
+    },
+    "checkoutMaintenance": true,
+    "pendingWebhookEvents": 0,
+    "frontend": "Publication follows this commit; final outcome recorded in task report"
+  }
 }

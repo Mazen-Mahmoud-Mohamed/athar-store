@@ -6,7 +6,7 @@ import { processWebhookClaim, rpcValue, type WebhookClaim } from '../_shared/xpa
 // Scheduler/operator endpoint. No event or payment data is accepted from this request.
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return jsonResponse(req, { error: 'method_not_allowed' }, 405)
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const key = Deno.env.get('ATHAR_WEBHOOK_WORKER_KEY')
   const supplied = req.headers.get('Authorization') ?? ''
   if (!key) return jsonResponse(req, { error: 'unavailable' }, 503)
   const digest = async (value: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))

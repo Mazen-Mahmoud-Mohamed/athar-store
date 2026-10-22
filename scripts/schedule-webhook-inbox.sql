@@ -1,6 +1,8 @@
 -- PREPARED ONLY: execute after deployment approval. Never disable the provider endpoint.
 -- Requires existing pg_cron, pg_net, and Vault plus a securely entered Vault secret
--- named athar_webhook_worker_service_key containing this project's existing service key.
+-- named athar_webhook_worker_service_key containing ATHAR_WEBHOOK_WORKER_KEY's
+-- dedicated random scheduler token (the legacy Vault entry name is retained).
+-- This token is not a Supabase service-role key or an XPay credential.
 -- No credential value belongs in this file, shell history, a migration, or application logs.
 begin;
 do $$begin
