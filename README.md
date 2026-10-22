@@ -1,94 +1,96 @@
 <div align="center">
 
-<img src="public/athar-logo.png" alt="Athar — أثر" width="150" />
+<img src="public/athar-logo.png" alt="Athar brand logo" width="150" />
 
-# أثر | Athar Store
+# Athar Store | أثر
 
-**أناقة تترك أثرًا**
+**Elegance That Leaves a Mark**
 
-متجر إلكتروني مصري للحقائب والإكسسوارات، بواجهة عربية كاملة (RTL)، وحسابات عملاء، وطلبات، ودفع إلكتروني، ولوحة تحكم، وتقييمات موثّقة.
+A production e-commerce storefront for an Egyptian bags and accessories brand, featuring an Arabic-first RTL shopping experience, customer accounts, secure checkout, order tracking, admin tools, and verified product reviews.
 
-*An Arabic-first, full-stack e-commerce experience for the Egyptian bags & accessories brand Athar.*
-
-[**زيارة المتجر**](https://athar.qd.je) · [**استكشاف المنتجات**](https://athar.qd.je/products) · [**لوحة الإدارة**](https://athar.qd.je/admin/login)
+[**Live Store**](https://athar.qd.je) · [**Shop Products**](https://athar.qd.je/products) · [**Admin Portal**](https://athar.qd.je/admin/login)
 
 [![Deploy GitHub Pages](https://github.com/Mazen-Mahmoud-Mohamed/athar-store/actions/workflows/deploy-github-pages.yml/badge.svg)](https://github.com/Mazen-Mahmoud-Mohamed/athar-store/actions/workflows/deploy-github-pages.yml)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase&logoColor=white)
-![RTL](https://img.shields.io/badge/Language-Arabic%20%7C%20RTL-b8956c)
+![Arabic RTL](https://img.shields.io/badge/Language-Arabic%20%7C%20RTL-b8956c)
 
 </div>
 
 ---
 
-> **الحالة:** هذا مستودع التطبيق الفعلي، وليس قالب UI أو نسخة تجريبية من المرحلة الأولى. يعمل المتجر على [athar.qd.je](https://athar.qd.je) وتُنشر واجهته عبر GitHub Pages، بينما تعمل المصادقة وقاعدة البيانات والتخزين ووظائف الدفع عبر Supabase. تحديث التوثيق: **22 أكتوبر 2026**.
+> **Project status:** This is the active application repository, **not an early-phase UI prototype**. The storefront is deployed at [athar.qd.je](https://athar.qd.je) using GitHub Pages. Authentication, PostgreSQL, storage, and payment-related server functions are provided by Supabase. **Documentation updated: October 22, 2026.**
 
-## المحتويات
+## Table of Contents
 
-- [نظرة عامة](#overview)
-- [أحدث التطويرات](#whats-new)
-- [التقنيات](#stack)
-- [تشغيل المشروع محليًا](#getting-started)
-- [الصفحات والمسارات](#routes)
-- [بنية المشروع](#structure)
-- [الطلبات والدفع](#orders-and-payments)
-- [التقييمات وإدارة المحتوى](#reviews)
-- [Supabase والأمان](#backend-and-security)
-- [الاختبارات والتشغيل](#development-and-qa)
-- [النشر](#deployment)
-- [ملاحظات مهمة للمساهمين](#notes)
+- [Overview](#overview)
+- [What's New](#whats-new)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Available Routes](#available-routes)
+- [Project Structure](#project-structure)
+- [Orders & Payments](#orders--payments)
+- [Verified Product Reviews](#verified-product-reviews)
+- [Backend & Security](#backend--security)
+- [Testing & Operations](#testing--operations)
+- [Deployment](#deployment)
+- [Documentation & Contributing](#documentation--contributing)
 
-<a id="overview"></a>
-## ✨ نظرة عامة
+## Overview
 
-**أثر** تجربة تسوّق مصرية بتصميم هادئ بألوان الكريمي والبني والذهبي، مصمّمة للعربية من اليمين لليسار مع دعم الموبايل والكمبيوتر.
+**Athar** is an Egyptian e-commerce experience for handbags and accessories. The storefront is optimized for Arabic, right-to-left layouts, and responsive shopping, with a warm cream, brown, and gold visual identity.
 
-| المجال | المزايا الموجودة في الكود |
+| Area | Features implemented |
 | --- | --- |
-| **الواجهة والمتجر** | الصفحة الرئيسية، تصنيفات ومنتجات مباشرة من قاعدة البيانات، بحث، عروض، منتجات جديدة ومميزة، صفحات تفاصيل وصور منتجات |
-| **كتالوج المنتجات** | تصفية حسب التصنيف والسعر والخصومات، ترتيب حسب الأحدث أو السعر أو الاسم، شريط فلاتر مدمج ولوحة سعر صغيرة متجاوبة |
-| **السلة والشراء** | سلة محفوظة محليًا، تعديل الكميات، زر «شراء الآن» بدون تغيير السلة، مراجعة الأسعار والمخزون قبل تأكيد الطلب |
-| **حسابات العملاء** | إنشاء حساب بالبريد وكلمة المرور، Google OAuth، تأكيد البريد، استعادة كلمة المرور، الملف الشخصي والعنوان الافتراضي |
-| **الطلبات** | إنشاء طلبات للمستخدمين المسجلين، قائمة الطلبات وتفاصيلها، خطوات متابعة الحالة، طلب الإلغاء وفق قيود الخادم |
-| **المدفوعات** | الدفع عند الاستلام (COD)، XPay Hosted Checkout (Test/Live)، التحقق من حالة الدفع من الخادم وWebhooks |
-| **لوحة الإدارة** | إدارة المنتجات والتصنيفات والصور والمخزون، متابعة الطلبات وتغيير حالاتها، ومراجعة تقييمات العملاء |
-| **التقييمات** | تقييم من 1 إلى 5 نجوم بعد تسليم طلب موثّق، تعليق وصورة اختياريان، موافقة الأدمن قبل النشر، إظهار الاسم باختيار العميل فقط |
-| **الظهور وتجربة الاستخدام** | صفحات عربية RTL، صور محسّنة، بيانات SEO وOpen Graph وJSON-LD وsitemap وrobots.txt وصفحات سياسة الخصوصية والشروط والاسترجاع |
+| **Storefront** | Dynamic homepage, live product catalog, categories, search, offers, new arrivals, featured products, product details, and product imagery |
+| **Product discovery** | Category and price filters; new, featured, and discounted product filters; sorting by newest, price, or name; compact responsive filter controls |
+| **Cart & checkout** | Persistent cart, quantity management, **Buy Now** flow that does not overwrite the cart, and price/stock revalidation before ordering |
+| **Customer accounts** | Email/password registration, Google OAuth, email confirmation, password recovery, profile settings, and default shipping address |
+| **Order tracking** | Authenticated customer orders, history and details, progress tracking, and server-controlled cancellation |
+| **Payments** | Cash on delivery (**COD**), XPay Hosted Checkout (**Test/Live**), authoritative server-side payment verification, and webhooks |
+| **Admin dashboard** | Product/category CRUD, images, stock, order management, fulfillment states, and customer review moderation |
+| **Product reviews** | 1–5 stars after a verified purchase is delivered, optional comment and image, approval before publication, and optional name display |
+| **SEO & UX** | Arabic RTL interface, responsive pages, optimized product images, Open Graph, JSON-LD, sitemap, robots.txt, and legal/policy pages |
 
-<a id="whats-new"></a>
-## 🚀 أحدث التطويرات — أكتوبر 2026
+## What's New
 
-1. **Customer Accounts & Google Sign-in:** إضافة نظام الحسابات وربط الطلبات بمالكها بدل إنشاء طلبات زائر جديدة، وتوفير لوحة «حسابي» وتتبّع الطلبات وتسجيل الدخول بجوجل.
-2. **XPay Integration & Reliability:** Checkout إلكتروني من خلال Supabase Edge Functions، مع ربط إنشاء الطلب بجلسته الصحيحة، مفاتيح idempotency، والتحقق من حالة الدفع، واستقبال Webhooks مع طابور معالجة وإعادة المحاولة.
-3. **Order / Inventory Guards:** حماية مخزون الطلبات وانتقالات حالاتها على مستوى PostgreSQL، مع ضوابط إلغاء الطلب والتعامل مع المدفوعات وعمليات الاسترداد.
-4. **Verified Purchase Reviews:** تقييم المنتج فقط بعد أن تصل حالة الطلب إلى `delivered`؛ يمكن إضافة تعليق وصورة. كل التقييمات تمر بمراجعة الإدارة قبل ظهورها للعامة.
-5. **Optional Reviewer Name:** اختيار **«إظهار اسمي مع التقييم»** غير مفعّل افتراضيًا. عند الموافقة، يظهر اسم العميل المسجّل في ملفه الشخصي فقط إذا وافق على مشاركته؛ التقييمات القديمة تظل مجهولة الاسم.
-6. **Products UI/UX Refresh:** مساحات أصغر في صفحة `/products`، تصنيفات أفقية، أدوات تصفية وترتيب مختصرة، ولوحة مدمجة لتصفية السعر بدل النافذة الضخمة.
-7. **Production Operations:** إعداد نشر GitHub Pages، مستندات تشغيل/استعادة ونسخ احتياطي مشفّر، واختبارات للأمان ومسارات الطلبات والدفع.
+### October 2026 releases
 
-> بعض مستندات `docs/` و`supabase/SETUP.md` تصف حالة المشروع وقت كتابتها؛ راجع **ملفات الكود ومجلد migrations** باعتبارها المرجع الأحدث عند الاختلاف.
+1. **Customer accounts and Google Sign-In** — Customers can register, authenticate with Google, manage their details, and view their own orders. New orders are linked to authenticated customer accounts instead of being created through the deprecated guest-order RPC.
+2. **XPay checkout integration and recovery** — Online payments use Supabase Edge Functions, authenticated order creation, ownership checks, idempotency keys, webhook signature validation, durable event processing, and retry handling.
+3. **Order and inventory safeguards** — PostgreSQL enforces order-status transitions, inventory reservation/release behavior, payment integrity, cancellation rules, and refund bookkeeping.
+4. **Verified-purchase reviews** — Customers can rate individual purchased products **only after an order is marked `delivered`**. Comments and pictures are optional; an administrator approves ratings before publication.
+5. **Optional reviewer identity** — A default-off checkbox lets customers choose to display their saved profile name with an approved review. Previously submitted reviews remain anonymous.
+6. **Products page UI/UX overhaul** — Reduced unused vertical space, horizontal category pills, compact sort and quick-filter controls, and a smaller price-filter popover instead of an oversized sheet.
+7. **Production tooling** — GitHub Pages automation, security and payment regression scripts, documented release procedures, and encrypted backup/restore utilities.
 
-<a id="stack"></a>
-## 🧰 التقنيات
+> Some files under `docs/` and `supabase/SETUP.md` are historical implementation notes and may describe the system as it existed at the time. Use the **current source code and versioned migrations** to establish the present implementation.
 
-| الطبقة | التقنية |
+## Tech Stack
+
+| Layer | Technology |
 | --- | --- |
 | Frontend | **React 19**, **TypeScript 6**, **Vite 8** |
-| Styling & UI | **Tailwind CSS v4**, Radix UI, CVA, Lucide React, Sonner |
-| Routing | **React Router 7** مع مسارات عامة ومحمية |
-| Backend | **Supabase**: PostgreSQL, Auth, Row Level Security (RLS), Storage, Edge Functions |
-| Authentication | البريد وكلمة المرور + **Google OAuth** من خلال Supabase Auth |
-| Payments | **XPay Hosted Checkout** (منطق التحقق والمفاتيح السرية على الخادم) |
-| Hosting | **GitHub Pages** على الدومين `athar.qd.je` |
-| CI/CD | **GitHub Actions** للبناء والفحص والنشر |
-| SEO | Open Graph، Structured Data (JSON-LD)، sitemap.xml، robots.txt |
+| Styling and UI | **Tailwind CSS v4**, Radix UI, CVA, Lucide React, Sonner |
+| Routing | **React Router 7**, including public and protected routes |
+| Backend | **Supabase**: PostgreSQL, Auth, Row Level Security (RLS), Storage, and Edge Functions |
+| Authentication | Email/password and **Google OAuth** through Supabase Auth |
+| Payments | **XPay Hosted Checkout**, with server-side credentials and verification |
+| Hosting | **GitHub Pages** with the custom domain `athar.qd.je` |
+| CI/CD | **GitHub Actions** for build validation and deployment |
+| SEO | Open Graph metadata, JSON-LD structured data, sitemap.xml, and robots.txt |
 
-<a id="getting-started"></a>
-## 💻 تشغيل المشروع محليًا
+## Getting Started
 
-**المتطلبات:** Node.js **22**، وnpm. تحتاج مشروع Supabase مُعدًّا ومفاتيح العميل العامة لاختبار الوظائف التي تعتمد على البيانات.
+### Prerequisites
+
+- **Node.js 22**
+- **npm**
+- A properly configured **Supabase development project** to use database-backed features
+
+Clone and install dependencies:
 
 ~~~bash
 git clone https://github.com/Mazen-Mahmoud-Mohamed/athar-store.git
@@ -96,116 +98,122 @@ cd athar-store
 npm ci
 ~~~
 
-انسخ `.env.example` إلى `.env.local`:
+Copy the example environment file:
 
 ~~~bash
 cp .env.example .env.local
 ~~~
 
-> على Windows PowerShell: `Copy-Item .env.example .env.local`
+On Windows PowerShell:
 
-املأ القيم العامة التالية من إعدادات **مشروع Supabase الخاص ببيئة التطوير**:
+~~~powershell
+Copy-Item .env.example .env.local
+~~~
+
+Provide your **development project's public client credentials** in `.env.local`:
 
 ~~~dotenv
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_OR_PUBLISHABLE_KEY
 ~~~
 
-ثم شغّل التطبيق:
+Start the development server:
 
 ~~~bash
 npm run dev
 ~~~
 
-Vite يعرض رابط التطوير محليًا (غالبًا `http://localhost:5173`).
+Vite prints the local URL (usually `http://localhost:5173`).
 
-**مهم جدًا:** لا تضع `service_role` أو `sb_secret_*` أو مفاتيح XPay أو أسرار Google داخل أي متغير يبدأ بـ`VITE_`؛ هذه المتغيرات تدخل في ملفات JavaScript العامة بعد البناء. ولا تستخدم قاعدة بيانات الإنتاج للتجارب أو `seed` إلا بتفويض واضح.
+> **Security:** Never place `service_role`, `sb_secret_*`, XPay private keys, Google client secrets, or account passwords in `VITE_*` variables. Vite embeds those values into publicly downloadable frontend bundles. Do not point destructive tests, demo seeds, or migrations at production without an explicit release plan.
 
-### أوامر التطوير
+### Development commands
 
-| الأمر | الاستخدام |
+| Command | Purpose |
 | --- | --- |
-| `npm ci` | تثبيت الإصدارات المتوافقة مع `package-lock.json` |
-| `npm run dev` | تشغيل خادم Vite المحلي |
-| `npm run build` | فحص TypeScript ثم بناء نسخة الإنتاج |
-| `npm run preview` | معاينة ملفات الإنتاج محليًا |
-| `npm run lint` | تشغيل Oxlint |
-| `npm run test:xpay` | اختبار أجزاء توقيع/تكامل XPay ببيانات اختبارية |
-| `npm run test:orders` | اختبارات مسار الطلب والمخزون والدفع (قد تتطلب بيئة PostgreSQL اختبارية) |
-| `npm run seo:sitemap` | توليد/تحديث sitemap اعتمادًا على الإعدادات المتاحة |
+| `npm ci` | Install dependency versions from `package-lock.json` |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Run TypeScript validation and build the production bundle |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run Oxlint |
+| `npm run test:xpay` | Run the XPay signing/integration test harness using fixtures |
+| `npm run test:orders` | Run the order, inventory, and payment tests; may require a test PostgreSQL environment |
+| `npm run seo:sitemap` | Generate/enrich the sitemap when configuration permits |
 
-توجد اختبارات إضافية في `scripts/`، ومنها `test-customer-accounts-security.mjs` و`test-route-scroll.mjs` و`test-xpay-refunds.mjs`. بعض اختبارات الطلبات القديمة تعتمد على شكل قاعدة بيانات سابق؛ راجع متطلبات كل سكربت وبيئة الاختبار قبل تشغيله.
+Additional checks are available under `scripts/`, including `test-customer-accounts-security.mjs`, `test-route-scroll.mjs`, and `test-xpay-refunds.mjs`. Some older test harnesses intentionally reproduce historical schema states; review each script's prerequisites before running it.
 
-<a id="routes"></a>
-## 🗺️ الصفحات والمسارات
+## Available Routes
 
-### المتجر والحسابات
+### Storefront and customer account
 
-| المسار | الوظيفة |
+| Route | Description |
 | --- | --- |
-| `/` | الرئيسية |
-| `/products` | جميع المنتجات والبحث والتصفية والترتيب |
-| `/products/:id` | تفاصيل المنتج، معرض الصور، التقييمات (يدعم slug أو UUID) |
-| `/category/:slug` | منتجات تصنيف معين |
-| `/cart` | سلة التسوق |
-| `/checkout` | إتمام الطلب للمستخدم المسجل |
-| `/checkout?intent=buy-now` | الشراء المباشر لمنتج |
-| `/order-success` | نتيجة الطلب/متابعة حالة XPay |
-| `/login` و`/register` | تسجيل الدخول وإنشاء الحساب |
-| `/forgot-password` و`/reset-password` | استعادة كلمة المرور |
-| `/auth/callback` | عودة تسجيل الدخول من مزود OAuth |
-| `/account` | طلبات العميل |
-| `/account/profile` | الملف الشخصي |
-| `/account/orders/:id` | تفاصيل الطلب، المتابعة، الإلغاء، والتقييم بعد التسليم |
-| `/privacy-policy` و`/terms` و`/return-policy` | السياسات والشروط والاسترجاع |
+| `/` | Homepage |
+| `/products` | All products, search, filtering, and sorting |
+| `/products/:id` | Product detail page, gallery, and approved reviews (slug or UUID) |
+| `/category/:slug` | Category-specific product listing |
+| `/cart` | Shopping cart |
+| `/checkout` | Authenticated customer checkout |
+| `/checkout?intent=buy-now` | Direct single-product checkout |
+| `/order-success` | Order confirmation and XPay status handling |
+| `/login` | Customer sign-in |
+| `/register` | Customer registration |
+| `/forgot-password` | Request password recovery |
+| `/reset-password` | Set a new password |
+| `/auth/callback` | OAuth return handler |
+| `/account` | Customer order history |
+| `/account/profile` | Customer profile settings |
+| `/account/orders/:id` | Order detail, tracking, cancellation, and post-delivery reviews |
+| `/privacy-policy` | Privacy policy |
+| `/terms` | Terms and conditions |
+| `/return-policy` | Returns policy |
 
-### لوحة الإدارة
+### Administration
 
-| المسار | الوظيفة |
+| Route | Description |
 | --- | --- |
-| `/admin/login` | تسجيل دخول المسؤول |
-| `/admin` | إحصاءات ولوحة التحكم |
-| `/admin/products` | إدارة المنتجات |
-| `/admin/products/new` | إضافة منتج |
-| `/admin/products/:id/edit` | تعديل منتج |
-| `/admin/categories` | إدارة التصنيفات |
-| `/admin/orders` | إدارة الطلبات |
-| `/admin/orders/:id` | تفاصيل الطلب وتغيير الحالة |
-| `/admin/reviews` | الموافقة على التقييمات أو إخفاؤها أو حذفها |
+| `/admin/login` | Administrator sign-in |
+| `/admin` | Dashboard |
+| `/admin/products` | Product management |
+| `/admin/products/new` | Create a product |
+| `/admin/products/:id/edit` | Edit a product |
+| `/admin/categories` | Category management |
+| `/admin/orders` | Order management |
+| `/admin/orders/:id` | Order detail and status changes |
+| `/admin/reviews` | Approve, hide, or delete customer reviews |
 
-مسارات `/checkout` و`/account/*` محمية بجلسة عميل مؤكدة، ومسارات `/admin/*` محمية بتحقق صلاحية الإدارة.
+`/checkout` and `/account/*` require an authenticated customer session. Administrative pages require an account with the admin role, enforced in conjunction with backend authorization rules.
 
-<a id="structure"></a>
-## 🗂️ بنية المستودع
+## Project Structure
 
 ~~~text
 athar-store/
 ├── .github/workflows/
-│   ├── deploy-github-pages.yml    # Build + publish
-│   └── review-feature-check.yml   # PR build & lint
-├── public/                         # Brand, favicon, SEO & CNAME
+│   ├── deploy-github-pages.yml     # Production site deployment
+│   └── review-feature-check.yml    # Pull request build and lint
+├── public/                          # Logo, favicon, CNAME, SEO assets
 ├── src/
-│   ├── App.tsx                     # Routes & providers
-│   ├── assets/                     # Brand assets
-│   ├── components/                 # Shared layout, UI, SEO & admin
-│   ├── config/                     # Site, public contact links
+│   ├── App.tsx                      # Routes and application providers
+│   ├── assets/                      # Brand images
+│   ├── components/                  # Shared UI, layouts, admin, SEO
+│   ├── config/                      # Public site and contact settings
 │   ├── features/
-│   │   ├── account/                # Customer guards & review form
-│   │   ├── admin/                  # Admin auth guard/provider
-│   │   ├── cart/                   # Cart state & persistence
-│   │   ├── catalog/                # Search/filter UI
-│   │   ├── checkout/               # Buy-now session intent
-│   │   └── products/               # Cards, gallery, approved reviews
-│   ├── layouts/                    # Store & Admin layouts
-│   ├── lib/                        # Validation, image & SEO helpers
-│   ├── pages/                      # Store, account & admin routes
-│   ├── services/                   # Supabase-facing data layer
-│   ├── types/                      # Database & domain types
-│   └── index.css                   # Tailwind & brand design tokens
+│   │   ├── account/                 # Customer guards and review form
+│   │   ├── admin/                   # Admin auth guard and provider
+│   │   ├── cart/                    # Shopping cart and persistence
+│   │   ├── catalog/                 # Product filter controls
+│   │   ├── checkout/                # Buy Now session intent
+│   │   └── products/                # Cards, gallery, public reviews
+│   ├── layouts/                     # Store and admin layouts
+│   ├── lib/                         # Validation, images, SEO utilities
+│   ├── pages/                       # Storefront, account, admin routes
+│   ├── services/                    # Supabase data-access layer
+│   ├── types/                       # Domain and database definitions
+│   └── index.css                    # Tailwind and brand design tokens
 ├── supabase/
-│   ├── migrations/                 # SQL 001–017 (versioned)
+│   ├── migrations/                  # Versioned SQL migrations 001–017
 │   ├── functions/
-│   │   ├── _shared/               # CORS, XPay, webhook processing
+│   │   ├── _shared/                 # XPay, CORS, webhook processing
 │   │   ├── xpay-create-payment/
 │   │   ├── xpay-payment-status/
 │   │   ├── xpay-webhook/
@@ -213,112 +221,138 @@ athar-store/
 │   ├── config.toml
 │   ├── seed.sql
 │   └── SETUP.md
-├── scripts/                        # Tests, backup, restore, release, SEO
-├── docs/                           # Operational & investigation notes
+├── scripts/                         # QA, backup, restore, release, SEO
+├── docs/                            # Operations and investigation notes
 ├── .env.example
 ├── package.json
 └── vite.config.ts
 ~~~
 
-<a id="orders-and-payments"></a>
-## 🛒 الطلبات والدفع
+## Orders & Payments
 
-### رحلة العميل
+### Customer checkout journey
 
-1. اختيار المنتج وإضافته للسلة أو استخدام **«شراء الآن»**.
-2. تسجيل الدخول/إنشاء حساب إذا لزم، وإدخال عنوان ورقم هاتف مصري.
-3. إعادة التحقق من توفر الكميات والأسعار؛ الأسعار النهائية تُحتسب **على الخادم**، وليس من مجموع السلة في المتصفح.
-4. اختيار الدفع عند الاستلام (**COD**) أو **XPay Hosted Checkout**.
-5. متابعة الطلب من `/account` حتى حالات: `pending → confirmed → preparing → shipped → delivered`. الإلغاء له مسار وقواعد مستقلة.
-6. بعد `delivered` يمكن للعميل تقييم المنتجات التي كانت ضمن ذلك الطلب.
+1. Select a product and add it to the cart, or use **Buy Now**.
+2. Sign in or register if necessary, then provide shipping and Egyptian phone details.
+3. Revalidate product availability and pricing; **the backend computes authoritative order totals** rather than trusting the browser.
+4. Select **Cash on Delivery (COD)** or **XPay Hosted Checkout**.
+5. Track the order under `/account`. The normal progression is `pending → confirmed → preparing → shipped → delivered`; cancellation follows separate server-enforced rules.
+6. Once an order is delivered, review the products included in that order.
 
-### XPay: كيف يعمل؟
+### Payment architecture
 
 ~~~text
 Customer checkout
-     │
-     ├── COD ────────► create_customer_order (PostgreSQL RPC)
-     │
-     └── XPay ───────► xpay-create-payment (Edge Function)
-                              │
-                              ▼
-                        XPay Hosted Checkout
-                              │
-                    signed XPay webhook
-                              │
-                              ▼
-                  xpay-webhook → durable inbox
-                              │
-                              ▼
-                 xpay-process-webhook-inbox
-                              │
-                              ▼
-                    verified payment/order state
+       │
+       ├── COD ────────► create_customer_order (PostgreSQL RPC)
+       │
+       └── XPay ───────► xpay-create-payment (Edge Function)
+                                │
+                                ▼
+                          XPay Hosted Checkout
+                                │
+                         Signed XPay webhook
+                                │
+                                ▼
+                    xpay-webhook → Durable inbox
+                                │
+                                ▼
+                    xpay-process-webhook-inbox
+                                │
+                                ▼
+                   Verified payment + order state
 ~~~
 
-- الأسرار و`XPAY_MODE` تُقرأ في **Edge Functions** فقط؛ الواجهة لا تستطيع فرض وضع Test/Live.
-- إنشاء طلب XPay يتطلب هوية عميل صحيحة، ويتحقق من ملكية محاولة الدفع السابقة قبل إعادة استخدامها.
-- توجد حماية ضد تكرار محاولات الدفع والأحداث، ومنطق للمخزون، وتأمين توقيع Webhook ومطابقة وضع الجلسة وقيمتها.
-- نتيجة إعادة التوجيه من XPay **ليست دليل دفع**؛ الحالة المؤكدة تأتي من التحقق على الخادم.
-- ملفات معالجة الاسترداد وحالات الدفع موجودة في `supabase/functions/_shared/` والمهاجرات ذات الصلة.
+The implementation includes:
 
-**إعدادات الخادم فقط (Supabase Edge Function Secrets):** `XPAY_MODE` و`XPAY_SECRET_KEY` و`XPAY_WEBHOOK_SECRET` و`STOREFRONT_URL`. قد يُستخدم `XPAY_WEBHOOK_SECRET_SECONDARY` مؤقتًا أثناء تغيير الوضع، وليس لتجاوز التحقق.
+- Server-only `XPAY_MODE` selection and XPay credentials; the browser cannot override the provider mode.
+- Customer JWT verification when creating XPay payments, plus ownership checks before reusing earlier attempts.
+- Payment idempotency and webhook event deduplication.
+- XPay signature verification, provider mode and session verification, and payment/amount matching.
+- Inventory and order-state safeguards implemented in database RPCs.
+- A durable webhook inbox with an authenticated processing worker and retry handling.
+- Refund-related database logic and event reconciliation.
 
-**Webhook endpoint:**
+**A successful browser redirect is not proof of payment.** Verified payment state must come from the server and the payment provider.
+
+### Server-side secrets
+
+Configure these as **Supabase Edge Function secrets**, never frontend environment variables:
+
+| Secret | Role |
+| --- | --- |
+| `XPAY_MODE` | `test` or `live` |
+| `XPAY_SECRET_KEY` | Matching provider API secret |
+| `XPAY_WEBHOOK_SECRET` | Webhook signature verification |
+| `STOREFRONT_URL` | Return/cancel URL origin |
+| `XPAY_WEBHOOK_SECRET_SECONDARY` | Optional *temporary* signature overlap during a controlled cutover |
+
+XPay webhook endpoint:
 
 ~~~text
 https://rotcgsayspiphcisepmu.supabase.co/functions/v1/xpay-webhook
 ~~~
 
-يوجد عامل لمعالجة الـinbox في `xpay-process-webhook-inbox` وإعداد جدولة في `scripts/schedule-webhook-inbox.sql`. لا تشغّل عمليات دفع أو Webhooks اصطناعية ضد الإنتاج للاختبار.
+The background inbox processor lives under `supabase/functions/xpay-process-webhook-inbox/`, with scheduling SQL in `scripts/schedule-webhook-inbox.sql`. **Do not send synthetic payment/webhook events to production.**
 
-<a id="reviews"></a>
-## ⭐ تقييمات المنتجات الموثّقة
+## Verified Product Reviews
 
-- التقييم من **1 إلى 5 نجوم**، ويسمح به فقط لمنتج موجود داخل **طلب يخص صاحب الحساب وحالته `delivered`**.
-- **تقييم واحد لكل بند في الطلب**؛ يتم التحقق من ذلك داخل قاعدة البيانات.
-- نص حتى **1,200 حرف** وصورة واحدة اختيارية بصيغة **JPEG/PNG/WebP** حتى **5 MB**.
-- يتم تخزين صور التقييم في حاوية **خاصة** `product-review-photos` مع قواعد Storage/RLS وروابط عرض مؤقتة.
-- كل تقييم يبدأ بحالة **`pending`**؛ لا يدخل في متوسط النجوم ولا يظهر للعامة قبل **`approved`**.
-- يستطيع الأدمن **اعتماد، إخفاء، أو حذف** التقييم من `/admin/reviews`.
-- خيار **إظهار الاسم** اختياري ومغلق افتراضيًا. عند تفعيله يُحفظ الاسم الظاهر من ملف العميل لحظة الإرسال؛ غير ذلك يظهر باسم عام **«عميل من أثر»**. التقييمات القديمة لا تكشف هوية أصحابها.
+Every product review is tied to an actual item in an order belonging to the reviewer.
 
-**مرجع التنفيذ:** `src/features/account/OrderProductReviews.tsx`، `src/features/products/ProductReviews.tsx`، `src/services/reviewService.ts` والمهاجرات `016` و`017`.
+- **1–5 stars** can be submitted only after the order reaches `delivered`.
+- Each purchased order item can be reviewed **once**.
+- Reviews may include an optional comment of up to **1,200 characters** and an optional **JPEG/PNG/WebP** photo of up to **5 MB**.
+- Review images are stored in the private `product-review-photos` bucket and accessed using time-limited URLs subject to database/storage permissions.
+- New submissions start as `pending`. **Neither ratings nor comments/photos appear publicly or affect averages before admin approval.**
+- Administrators can **approve, hide, or permanently delete** reviews from `/admin/reviews`.
+- The **Show my name with this review** preference is **off by default**. If enabled, the saved profile name is captured at submission and may be displayed after approval. Otherwise, the review appears under a generic customer label; older reviews remain anonymous.
 
-<a id="backend-and-security"></a>
-## 🔐 Supabase والحدود الأمنية
+Relevant source files:
 
-الخلفية ليست مجرد API عامة؛ **RLS وPostgreSQL RPCs** مسؤولة عن التحقق من أذونات الوصول وملكية البيانات وانتقالات الطلبات.
+- `src/features/account/OrderProductReviews.tsx` — customer review form
+- `src/features/products/ProductReviews.tsx` — approved public reviews
+- `src/services/reviewService.ts` — review RPCs and image handling
+- `src/pages/admin/AdminReviewsPage.tsx` — moderation interface
+- `supabase/migrations/20261022000016_verified_product_reviews.sql` — review eligibility and moderation
+- `supabase/migrations/20261022000017_optional_review_author_name.sql` — opt-in author identity
 
-| المورد | الاستخدام |
+## Backend & Security
+
+**Supabase PostgreSQL RLS and server-side RPCs** are essential authorization boundaries. UI controls are not substitutes for ownership and permission checks.
+
+| Database resource | Purpose |
 | --- | --- |
-| `profiles` | معلومات العميل ودوره: `customer` أو `admin` |
-| `categories` و`products` | كتالوج المنتجات والتصنيفات والمخزون |
-| `orders` و`order_items` | بيانات الطلب والمنتجات والأسعار المحفوظة عند الشراء |
-| `payments` و`xpay_webhook_events` و`xpay_refunds` | محاولات الدفع وأحداث XPay وسجل الاسترداد |
-| `xpay_webhook_inbox` | الاستقبال الدائم ومعالجة Webhook مع إعادة المحاولة |
-| `release_controls` | إيقاف آمن للـcheckout ومعالجة المال أثناء الصيانة |
-| `product_reviews` | التقييمات، الموافقات، وخيار عرض الاسم |
-| `product-images` | صور الكتالوج العامة، ورفعها بصلاحيات أدمن |
-| `product-review-photos` | صور التقييمات الخاصة حتى الاعتماد |
+| `profiles` | Customer profile and `customer` / `admin` role |
+| `categories`, `products` | Catalog, categories, stock levels |
+| `orders`, `order_items` | Order ownership and historical product/price snapshots |
+| `payments` | XPay payment attempts and metadata |
+| `xpay_webhook_events`, `xpay_refunds` | Processed provider events and refund ledger |
+| `xpay_webhook_inbox` | Durable webhook processing queue |
+| `release_controls` | Checkout/financial maintenance safety gates |
+| `product_reviews` | Ratings, moderation state, and optional public name |
+| `product-images` | Public catalog image bucket with admin-only writes |
+| `product-review-photos` | Private customer review image bucket |
 
-**مراحل migrations:**
+### Migration history
 
-- **001–007:** المخطط الأساسي والصلاحيات والتخزين والتصنيفات.
-- **008–011:** XPay والسجلات والمنح المطلوبة للوظائف.
-- **012–014:** حماية المخزون والمدفوعات، سجل الاستردادات، وضع الصيانة وWebhook inbox.
-- **015:** حسابات العملاء، ملكية الطلبات، إلغاء العميل، واستبدال إنشاء الطلبات العامة.
-- **016:** التقييمات الموثقة، الصور الخاصة، وسياسات مراجعة الأدمن.
-- **017:** الإظهار الاختياري لاسم صاحب التقييم مع الحفاظ على توافق الدوال القديمة.
+| Versions | Main changes |
+| --- | --- |
+| **001–007** | Initial schema, RLS, catalog image storage, admin order workflow, category visibility |
+| **008–011** | XPay payment storage, provider RPCs, required service-role privileges |
+| **012–014** | Inventory/payment consistency, refund ledger, checkout maintenance, durable webhook inbox |
+| **015** | Authenticated customer orders, order ownership, customer cancellation, replacement of guest-order creation |
+| **016** | Verified reviews, private uploads, admin moderation |
+| **017** | Opt-in reviewer name with backward-compatible RPC support |
 
-> ⚠️ **هام قبل أي migration على الإنتاج:** الملفات التاريخية لم تُعدّل بعد تطبيقها. بعض migrations الأحدث طُبّقت من خلال Supabase Management API وسُجلت في تاريخ الإنتاج بأرقام تشغيل تختلف عن أرقام الملفات المحلية. **افحص `supabase_migrations.schema_migrations` وقارن المخطط الفعلي قبل `supabase db push`** حتى لا تُعاد migration مطبقة. اختبر أولًا في قاعدة بيانات منفصلة واحتفظ بنسخة احتياطية قابلة للاستعادة.
+> **Production migration warning:** Historical migrations are intentionally not rewritten after they have run. Some newer migrations were applied using the Supabase Management API, resulting in **recorded migration version identifiers that differ from their checked-in filenames**. Inspect `supabase_migrations.schema_migrations` and reconcile the actual deployed schema with the local migration history **before running `supabase db push`**. Test against a separate database and obtain a restorable backup first.
 
-**ملاحظات أمان:** Supabase Auth يوفر حدود المعدّل الخاصة بخدمات المصادقة وفق إعدادات المشروع، لكن لا يوجد في الواجهة/الوظائف الحالية نظام مخصص شامل لتحديد معدل طلبات إنشاء الأوردر وXPay أو CAPTCHA عام. لا تعتبر RLS بديلًا عن Rate Limiting. راجع إعدادات Auth والتتبع قبل التوسع.
+### Rate limiting and abuse prevention
 
-<a id="development-and-qa"></a>
-## 🧪 الاختبار والتشغيل الآمن
+Supabase Auth supplies authentication-specific rate limits based on project settings. The current application **does not implement a comprehensive, dedicated API rate limiter for order/payment creation or a universal CAPTCHA**. RLS prevents unauthorized access, but it does not replace throttling or anti-automation controls.
 
-تشغّل GitHub Actions على Pull Requests:
+## Testing & Operations
+
+The pull request validation workflow runs:
 
 ~~~bash
 npm ci
@@ -326,54 +360,73 @@ npm run build
 npm run lint
 ~~~
 
-قبل نشر تعديل يمس الدفع أو الطلبات أو RLS، يلزم فوق ذلك فحص السيناريوهات ذات الصلة، بما في ذلك:
+Changes involving payments, authorization, reviews, or database migrations also require scenario-specific checks:
 
-- صلاحية المستخدم، ومحاولات الوصول لطلبات وتقييمات عملاء آخرين.
-- تسلسل حالات الطلب والمخزون مع الإلغاء وإعادة المحاولة.
-- مطابقة المبالغ ووضع XPay وWebhooks الموقعة وتكرار الحدث والاسترداد.
-- موافقة المسؤول قبل نشر أي تقييم أو صورة أو اسم اختياري.
-- التوافق بين ملف migration وحالة قاعدة البيانات التي ستستقبله.
+- Anonymous or wrong-account requests must not access customer orders or reviews.
+- Orders must follow valid transitions and maintain inventory integrity through cancellation and retries.
+- Payment verification must correctly handle amounts, provider modes, signed webhook events, duplicates, and refunds.
+- Pending/hidden reviews, images, and opt-in names must not leak to public responses.
+- Schema changes must be tested against the intended starting database state and verified against recorded migrations.
 
-**نسخ الإنتاج الاحتياطية/الاستعادة:** توجد أدوات خاصة في `scripts/backup-production.ps1` و`scripts/verify-production-backup.ps1` ومستندات `docs/`. تعتمد على أدوات PostgreSQL 17.11 وصلاحيات وبيئة Windows محمية، وليست أمرًا يُشغّل تلقائيًا على جهاز مطوّر. **نجاح تشفير الأرشيف لا يساوي نجاح استعادة إنتاجية مجرّبة**؛ راجع تقارير التحقق الفعلية قبل أي عملية صيانة.
+### Production backup and recovery
 
-<a id="deployment"></a>
-## 🌍 النشر
+Repository scripts include:
 
-الواجهة مستضافة على **GitHub Pages** بالدومين المخصص:
+- `scripts/backup-production.ps1`
+- `scripts/verify-production-backup.ps1`
+- Supporting backup, encrypted diagnostics, and restoration tooling under `scripts/`
+- Release and investigation reports under `docs/`
 
-**[https://athar.qd.je](https://athar.qd.je)**
+These production recovery tools depend on a controlled Windows environment and PostgreSQL 17.11 tooling. They are **not** ordinary developer startup commands. **An encrypted and integrity-checked archive is not equivalent to a successfully tested production restoration**. Review the most recent verification results before attempting a production cutover.
 
-ملف النشر: `.github/workflows/deploy-github-pages.yml`
+## Deployment
 
-- كل push إلى `main` يشغّل `npm ci` و`npm run build`، ثم يتحقق من مسارات الملفات وملفات SEO ويرفع `dist/` إلى Pages.
-- يستخدم GitHub Actions المتغيرين العامين `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY` في **Build** من GitHub Secrets.
-- قاعدة `base: '/'` مناسبة للدومين المخصص؛ ينسخ Vite `index.html` إلى `404.html` لدعم فتح روابط React Router المباشرة.
-- تتمتع Supabase Edge Functions وMigrations **بدورة نشر مستقلة**؛ نشر GitHub Pages وحده **لا يطبّق SQL** ولا ينشر تغييرات وظائف XPay.
-- `public/CNAME` و`public/sitemap.xml` و`public/robots.txt` ضمن إعدادات الموقع؛ توليد sitemap المتصل بالمنتجات يحاول الاستفادة من البيئة المتاحة أثناء البناء.
+The public frontend is served through GitHub Pages at:
 
-**لإعداد OAuth:** فعّل Google Provider في Supabase Auth، وضع callback الخاص بـSupabase في Google Cloud OAuth client، واضبط Site URL وروابط إعادة التوجيه لتطابق الدومين. لا تحفظ Client Secret في Git أو `VITE_*`.
+### **https://athar.qd.je**
 
-<a id="notes"></a>
-## 📚 توثيق وملاحظات للمساهمين
+Workflow: [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml)
 
-- [إعداد Supabase](supabase/SETUP.md) — تفاصيل الإعداد وXPay (**قد تتضمن خطوات من إصدار سابق**).
-- [مهاجرات قاعدة البيانات](supabase/migrations/) — المرجع التنفيذي للمخطط.
-- [وثائق التشغيل والتحقيقات](docs/) — تفاصيل المخزون وXPay والنسخ الاحتياطية وتاريخ قرارات الإصلاح.
-- [سكربتات الفحص والصيانة](scripts/) — اختبارات وإجراءات تشغيل يجب قراءة متطلباتها قبل التنفيذ.
-- [CI/CD](.github/workflows/) — تعريفات البناء والفحص والنشر.
+On pushes to `main`:
 
-**إرشادات المساهمة:** أنشئ فرعًا لكل ميزة، ولا تضف كلمات مرور أو أسرارًا أو بيانات عملاء إلى المستودع. تأكد من البناء وLint، واختبر تغييرات الخادم وصلاحيات RLS في بيئة منفصلة، ثم أرسل Pull Request يتضمن خطوات الاختبار.
+1. GitHub Actions checks out the repository and runs `npm ci`.
+2. The site builds using `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from GitHub Actions secrets.
+3. The workflow verifies production asset paths and SEO artifacts.
+4. The `dist/` artifact is published to GitHub Pages.
 
-**الترخيص:** لا يحتوي المستودع حاليًا على ملف `LICENSE`؛ لا تفترض ترخيصًا مفتوح المصدر قبل الرجوع إلى مالك المشروع.
+The Vite `base` is `/` for the custom domain. The build copies `index.html` to `404.html` so direct React Router links can load correctly on GitHub Pages. The repository also contains `public/CNAME`, `robots.txt`, and `sitemap.xml`; sitemap generation may enrich catalog URLs when Supabase configuration is available at build time.
+
+**Backend deployment is separate.** Publishing GitHub Pages does **not** apply Supabase SQL migrations or deploy Edge Functions.
+
+### Google OAuth configuration
+
+To enable Google sign-in in another environment:
+
+1. Configure the Google provider in **Supabase Auth**.
+2. Register the Supabase Auth callback URL in the Google Cloud OAuth client.
+3. Set the Supabase **Site URL** and allowed redirect URLs to match the frontend domain and `/auth/callback` route.
+4. Keep the Google client secret in the provider/server configuration, never in Git or any `VITE_*` environment variable.
+
+## Documentation & Contributing
+
+- [Supabase setup guide](supabase/SETUP.md) — service setup and payment configuration (**may contain historical instructions**)
+- [Database migrations](supabase/migrations/) — versioned schema and authorization changes
+- [Engineering/operations notes](docs/) — order flows, refund handling, backup and release investigations
+- [Tooling and tests](scripts/) — QA, verification, and controlled operational utilities
+- [GitHub Actions](.github/workflows/) — build checks and deployment
+
+For changes, use a dedicated feature branch, run the build and lint checks, and test backend/security changes in an isolated environment. Submit a pull request with a concise description and reproducible validation steps.
+
+**License:** No `LICENSE` file is currently checked into this repository. Do not assume open-source redistribution rights without the project owner's permission.
 
 ---
 
 <div align="center">
 
-**أثر — أناقة تترك أثرًا ✨**
+### Athar — Elegance That Leaves a Mark ✨
 
-[المتجر](https://athar.qd.je) · [إنستغرام](https://www.instagram.com/atha.r1797) · [التواصل بالبريد](mailto:Atharbags2026@gmail.com)
+[**Shop**](https://athar.qd.je) · [**Instagram**](https://www.instagram.com/atha.r1797) · [**Email**](mailto:Atharbags2026@gmail.com)
 
-Built with care for Arabic-first shopping.
+*Built for an Arabic-first shopping experience.*
 
 </div>
