@@ -17,6 +17,7 @@ import {
 import { useCart } from '@/features/cart/cart-context'
 import { useAuth } from '@/features/admin/AuthProvider'
 import { cn } from '@/lib/utils'
+import { customerReturnPath } from '@/features/account/navigation'
 
 const navLinks = [
   { to: '/', label: 'الرئيسية' },
@@ -77,6 +78,7 @@ export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const isLoggedIn = Boolean(user?.email_confirmed_at)
+  const loginDestination = `/login?next=${encodeURIComponent(customerReturnPath(location.pathname + location.search + location.hash))}`
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -155,7 +157,7 @@ export function Header() {
             </form>
             {/* Account icon */}
             <Button asChild variant="ghost" size="icon" aria-label={isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}>
-              <Link to={isLoggedIn ? '/account' : '/login'}>
+              <Link to={isLoggedIn ? '/account' : loginDestination}>
                 <User aria-hidden="true" className="size-5" />
               </Link>
             </Button>
@@ -212,7 +214,7 @@ export function Header() {
                 ))}
                 {/* Account link in mobile nav */}
                 <Link
-                  to={isLoggedIn ? '/account' : '/login'}
+                  to={isLoggedIn ? '/account' : loginDestination}
                   onClick={() => setMobileOpen(false)}
                   className="relative text-sm font-medium text-mocha transition-colors hover:text-brown"
                 >
@@ -258,7 +260,7 @@ export function Header() {
               {searchOpen ? <X aria-hidden="true" /> : <Search aria-hidden="true" />}
             </Button>
             <Button asChild variant="ghost" size="icon" aria-label={isLoggedIn ? 'حسابي' : 'تسجيل الدخول'}>
-              <Link to={isLoggedIn ? '/account' : '/login'}>
+              <Link to={isLoggedIn ? '/account' : loginDestination}>
                 <User aria-hidden="true" className="size-5" />
               </Link>
             </Button>
