@@ -17,6 +17,7 @@ import { CheckoutPage } from '@/pages/CheckoutPage'
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage'
 import { ReturnPolicyPage } from '@/pages/ReturnPolicyPage'
 import { TermsPage } from '@/pages/TermsPage'
+import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
 import { CustomerAuthPage } from '@/pages/CustomerAuthPage'
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="order-success" element={<OrderSuccessPage />} />
               <Route path="return-policy" element={<ReturnPolicyPage />} />
               <Route path="terms" element={<TermsPage />} />
+              <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
 
               {/* Protected customer routes */}
               <Route element={<CustomerRouteGuard />}>

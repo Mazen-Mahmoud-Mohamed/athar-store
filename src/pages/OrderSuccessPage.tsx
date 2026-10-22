@@ -327,6 +327,9 @@ export function OrderSuccessPage() {
               <Link to="/products">متابعة التسوق</Link>
             </Button>
             <Button asChild variant="outline">
+              <Link to="/account">متابعة طلباتي في حسابي</Link>
+            </Button>
+            <Button asChild variant="outline">
               <Link to="/">العودة للرئيسية</Link>
             </Button>
           </div>
