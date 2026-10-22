@@ -24,7 +24,7 @@ export function CustomerAuthPage({ mode }: { mode: Mode }) {
   useEffect(() => {
     if (loading || callbackError) return
     // PKCE code exchange is performed once by detectSessionInUrl during SDK initialization.
-    if (user?.email_confirmed_at && (mode === 'callback' || mode === 'login')) {
+    if (user?.email_confirmed_at && (mode === 'callback' || mode === 'login' || mode === 'register')) {
       navigate(next, { replace: true })
     }
   }, [loading, user, mode, next, navigate, callbackError])
