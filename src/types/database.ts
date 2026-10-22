@@ -115,9 +115,53 @@ export type OrderItem = {
   subtotal: number
 }
 
+export type ProductReview = {
+  id: string
+  order_item_id: string
+  order_id: string
+  product_id: string
+  customer_id: string
+  rating: number
+  comment: string | null
+  photo_path: string | null
+  status: 'pending' | 'approved' | 'hidden'
+  moderated_by: string | null
+  moderated_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
+      product_reviews: {
+        Row: ProductReview
+        Insert: {
+          id?: string
+          order_item_id: string
+          order_id: string
+          product_id: string
+          customer_id: string
+          rating: number
+          comment?: string | null
+          photo_path?: string | null
+          status?: ProductReview['status']
+          moderated_by?: string | null
+          moderated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          rating?: number
+          comment?: string | null
+          photo_path?: string | null
+          status?: ProductReview['status']
+          moderated_by?: string | null
+          moderated_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: Profile
         Insert: {
@@ -328,6 +372,32 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
+      submit_product_review: {
+        Args: { p_order_item_id: string; p_rating: number; p_comment?: string | null }
+        Returns: ProductReview
+      }
+      attach_product_review_photo: {
+        Args: { p_review_id: string; p_path: string }
+        Returns: undefined
+      }
+      get_product_reviews: {
+        Args: { p_product_id: string }
+        Returns: {
+          review_id: string
+          rating: number
+          comment: string | null
+          photo_path: string | null
+          created_at: string
+        }[]
+      }
+      get_product_rating_summary: {
+        Args: { p_product_id: string }
+        Returns: { average_rating: number; review_count: number }[]
+      }
+      admin_moderate_product_review: {
+        Args: { p_review_id: string; p_action: string }
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<string, never>
         Returns: boolean
