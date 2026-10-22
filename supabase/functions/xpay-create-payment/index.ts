@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { createServiceClient, storefrontBaseUrl } from '../_shared/supabaseAdmin.ts'
 import { rpcValue } from '../_shared/xpayWebhookProcessor.ts'
@@ -44,6 +45,26 @@ Deno.serve(async (req) => {
   let createdPaymentId: string | null = null
 
   try {
+    // Validate the caller before any service-role writes. JWT verification is
+    // performed here because this Edge Function has verify_jwt=false.
+    const authorization = req.headers.get('Authorization') ?? ''
+    const accessToken = /^Bearer\s+(.+)$/i.exec(authorization)?.[1]
+    if (!accessToken) return jsonResponse(req, { error: 'AUTHENTICATION_REQUIRED' }, 401)
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(accessToken)
+    const customer = authData?.user
+    if (authError || !customer) {
+      return jsonResponse(req, { error: 'AUTHENTICATION_REQUIRED' }, 401)
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !anonKey) throw new Error('SUPABASE_CLIENT_KEY_MISSING')
+    const customerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
     const { data: gate, error: gateError } = await supabase.rpc('checkout_maintenance_active', {})
     if (gateError || rpcValue(gate, 'checkout_maintenance_active') !== false) {
       return jsonResponse(req, { error: 'CHECKOUT_MAINTENANCE' }, 503)
@@ -74,6 +95,18 @@ Deno.serve(async (req) => {
       )
       .eq('idempotency_key', idempotencyKey)
       .maybeSingle()
+
+    // Never reuse or mutate a payment belonging to a different customer.
+    if (existingPayment) {
+      const { data: ownerOrder, error: ownerError } = await supabase
+        .from('orders')
+        .select('customer_id')
+        .eq('id', existingPayment.order_id)
+        .maybeSingle()
+      if (ownerError || !ownerOrder || ownerOrder.customer_id !== customer.id) {
+        return jsonResponse(req, { error: 'PAYMENT_NOT_FOUND' }, 404)
+      }
+    }
 
     if (existingPayment) {
       try {
@@ -241,8 +274,8 @@ Deno.serve(async (req) => {
         quantity: item.quantity,
       }))
 
-      const { data: confirmation, error: orderError } = await supabase.rpc(
-        'create_guest_order',
+      const { data: confirmation, error: orderError } = await customerClient.rpc(
+        'create_customer_order',
         {
           p_customer_name: customerName,
           p_phone: phone,
