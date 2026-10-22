@@ -20,6 +20,7 @@ const adminLinks = [
   { to: '/admin/products', label: 'المنتجات' },
   { to: '/admin/categories', label: 'التصنيفات' },
   { to: '/admin/orders', label: 'الطلبات' },
+  { to: '/admin/reviews', label: 'تقييمات العملاء' },
 ]
 
 function AdminNav({
